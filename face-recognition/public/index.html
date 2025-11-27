@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	<body>
+		<div class="box main-content">
+			<h2 class="center">Face Recognition System</h2>
+			<div class="flexbox">
+				<div class="flex box">
+					<h3 class="center">For New Users</h3>
+					<button onclick="StartRegistration()">Start Registration</button>
+				</div>
+				<div class="flex box">
+					<h3 class="center">For Verification</h3>
+					<button onclick="StartVerification()">Verify Identity</button>
+				</div>
+			</div>
+		</div>
+		<script>
+			function StartRegistration() {
+				const w = 400;
+				const h = 150;
+				window.open("registration.html","Registration",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`)
+			}
+			
+			function StartVerification() {
+				const w = 700;
+				const h = 450;
+				window.open("verification.html","Verification",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`)
+			}
+		</script>
+	</body>
+</html>
