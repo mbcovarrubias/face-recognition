@@ -1,4 +1,6 @@
 # face-recognition
+WIP, some features may not work yet
+
 ## How to set up
 1. download node.js if don't have
 2. download and extract this repository anywhere (it's recommended to extract in your username's directory, or in windows, **C:\Users\\[username]**)
