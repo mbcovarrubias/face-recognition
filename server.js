@@ -6,15 +6,18 @@ const mysql = require('mysql');
 
 const app = express();
 
+function connect() {
+	return mysql.createConnection({ host:"localhost",user:"root",password:"",database:"face-recognition"});
+}
+
 function multiQuery(db,queryList,cb) {
-	let idx = 0;
-	queryList.forEach((i)=>{
+	for (let idx = 0; idx < queryList.length; idx++) {
+		let i = queryList[idx];
 		db.query(i,(err,res)=>{
 			if (err) return;
-			if (cb) cb(idx,err,res);;
-			idx++;
+			if (cb) cb(idx,err,res);
 		})
-	});
+	}
 }
 
 app.set("view engine","ejs");
@@ -24,18 +27,19 @@ app.use(express.static("public"));
 app.use(express.json());
 
 app.post("/", (req,res) => {
-	const db = mysql.createConnection({ host:"localhost",user:"root",password:"",database:"face-recognition"});
+	const db = connect()
+	console.log("Created connection");
 	
 	const action = req.body.action;
 	const message = req.body.message;
 	const name = req.body.name;
-
+	
 	switch (action.toLowerCase()) {
 		case "check username":
 			let alreadyExists = false;
 			db.connect(err=>{
-				db.query(`SELECT * FROM registeredUsers`,(err,registeredUsers)=>{
-					if (err) return;
+				db.query(`SELECT * FROM RegisteredUsers`,(err,registeredUsers)=>{
+					if (err) console.error(err);
 					for (let i = 0; i < registeredUsers.length; i++) {
 						if (message.toLowerCase() == registeredUsers[i].name.toLowerCase()) {
 							alreadyExists = true;
@@ -43,9 +47,10 @@ app.post("/", (req,res) => {
 						}
 					}
 					res.send({alreadyExists: alreadyExists});
+					db.end();
 				});
-				db.end();
 			})
+			
 			break;
 		case "capture":
 			const fileName = message.fileName;
@@ -68,23 +73,43 @@ app.post("/", (req,res) => {
 			break;
 		case "regfinish":
 			db.connect(err=>{
-				db.query(`INSERT INTO registeredUsers (name) VALUES ('${name}')`,(err,registeredUsers)=>{return});
-				db.end();
-			});
+				db.query(`INSERT INTO RegisteredUsers (name) VALUES ('${name}')`,(err,res)=>{
+					if (err) console.error(err);
+					console.log("Successfully registered user "+name);
+					db.end();
+				})
+			})
+			
 			res.render("regfinish",{ message });
 			break;
 		case "get registered users":
 			db.connect(err=>{
-				db.query(`SELECT * FROM registeredUsers`,(err,registeredUsers)=>{
-					if (err) return;
+				db.query(`SELECT * FROM RegisteredUsers`,(err,registeredUsers)=>{
+					if (err) console.error(err);
 					
 					res.send(registeredUsers.map((i)=>{
 						return i.name;
 					}));
+					db.end();
 				});
-
-				db.end();
 			})
+			
+			break;
+		case "add to current record":
+			db.connect(err=>{
+				db.query(`CREATE TABLE IF NOT EXISTS \`${message.date}\` (name VARCHAR(255) UNIQUE, time TEXT)`,(err,res)=>{
+					if (err) console.error(err);
+					db.query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`, [message.name, message.time], (err) => {
+						if (err) console.error(err);
+
+						db.query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`, [message.date], (err) => {
+							if (err) console.error(err);
+							db.end();
+						});
+					});
+				});
+			});
+			
 			break;
 		default:
 			break;
@@ -97,18 +122,58 @@ app.post("/submit1", (req,res) => {
 })
 
 app.get("/registration", (req,res) => {
-	res.render("registration",{});
+	res.render("registration");
 })
 
 app.get("/verification", (req,res) => {
-	res.render("verification",{});
+	res.render("verification");
 })
 
-app.get("/current-record", (req,res) => {
+app.get("/record", (req,res) => {
+	const db = connect();
 	
+	let q = req.query
+	
+	let formattedDate = `${q.year}-${q.month}-${q.day}`;
+	
+	db.connect(err=>{
+		if (err) console.error(err);
+		db.query(`SELECT * FROM \`${formattedDate}\``,(err,record)=>{
+			if (err) {
+				res.render("record",{
+					"date": formattedDate,
+					"record": []
+				});
+			} else {
+				let recordsJSON = JSON.stringify(record.map(row=>{ return { name: row.name, time: row.time }; }))
+				res.render("record",{
+					"date": formattedDate,
+					"record": recordsJSON
+				});
+			}
+		})
+		db.end();
+	});
 })
 app.get("/archive", (req,res) => {
+	const db = connect();
 	
+	db.connect(err=>{
+		db.query(`SELECT * FROM Archive`,(err,archive)=>{
+			if (err) {
+				console.log(err);
+				res.render("archive",{
+					"dates": []
+				});
+			} else {
+				let archiveJSON = JSON.stringify(archive.map(row=>{ return { date: row.date }; }))
+				res.render("archive",{
+					"dates": archiveJSON
+				});
+			}
+		})
+		db.end();
+	});
 })
 
 app.listen(3000);
