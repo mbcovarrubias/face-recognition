@@ -8,7 +8,7 @@ WIP, some features may not work yet
 4. clear everything inside the images folder in the public folder.
 5. open any terminal (cmd, powershell, etc.) and change directory to "face-recognition" by typing "cd face-recognition". it should look something like this: **C:\Users\\[username]\face-recognition**
 6. install nodemon
-7. to start, type "npm run start"
+7. to start, type "npm run start" or "npm start"
 8. open any web browser, then type **localhost:[port number]** on the search bar. the server.js file uses **3000** as the port number.
 ## Reset registered users
 type "node resetdb.js" in the terminal to clear all users stored 
