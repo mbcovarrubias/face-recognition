@@ -1,4 +1,5 @@
 let mainCanvas = document.getElementById("canvas");
+let logs = document.getElementById("logs");
 
 let aspectRatio = 4/3;
 let maxCaptures = 5;
@@ -12,6 +13,16 @@ let faceMatcher;
 let detections = [];
 
 const detectionOptions = new faceapi.TinyFaceDetectorOptions()
+
+function addToLogs(text,error) {
+	let textElt = document.createElement("span");
+	textElt.innerHTML = text;
+	textElt.className = "line";
+	
+	if (error) textElt.style.color = "red";
+	
+	logs.appendChild(textElt);
+}
 
 async function loadLabeledImages() {
 	const response = await fetch("/",{
@@ -41,6 +52,39 @@ async function loadLabeledImages() {
 	)
 }
 
+async function addToCurrentRecord(name) {
+	let pad = (n) => n.toString().padStart(2,"0");
+	
+	let now = new Date();
+	let year = now.getFullYear();
+	let month = pad(now.getMonth()+1);
+	let day = pad(now.getDate());
+	
+	let hours = pad(now.getHours());
+	let minutes = pad(now.getMinutes());
+	let seconds = pad(now.getSeconds());
+	
+	let formattedDate = `${year}-${month}-${day}`;
+	let formattedTime = `${hours}:${minutes}:${seconds}`;
+	
+	if (name != "unknown") {
+		await fetch("/",{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				action: "add to current record",
+				message: {
+					"name": name,
+					"date": formattedDate,
+					"time": formattedTime
+				}
+			})
+		});
+	}
+}
+
 async function setup() {    
 	videoWidth = mainCanvas.getBoundingClientRect().width-8;
 	
@@ -49,25 +93,33 @@ async function setup() {
 	video = createCapture(VIDEO);
 	video.size(width,height);
 	video.hide();
-	
-	const p = "./models";
 		
-	Promise.all([
-		faceapi.nets.tinyFaceDetector.loadFromUri(p),
-		faceapi.nets.faceLandmark68Net.loadFromUri(p),
-		faceapi.nets.faceRecognitionNet.loadFromUri(p),
-		faceapi.nets.faceExpressionNet.loadFromUri(p)
-	]);
+	try {
+		const path = "./models";
 		
-	document.getElementById("status").innerHTML = "Loaded models"
-	
-	const labeledImages = await loadLabeledImages();
-	faceMatcher = new faceapi.FaceMatcher(labeledImages,.6);
-	
-	document.getElementById("status").innerHTML = "Loaded face matcher"
+		Promise.all([
+			faceapi.nets.tinyFaceDetector.loadFromUri(path),
+			faceapi.nets.faceLandmark68Net.loadFromUri(path),
+			faceapi.nets.faceRecognitionNet.loadFromUri(path),
+			faceapi.nets.faceExpressionNet.loadFromUri(path)
+		]);
+
+		addToLogs("Loaded models",false);
+		
+		const labeledImages = await loadLabeledImages();
+		
+		if (labeledImages.length > 0) {
+			faceMatcher = new faceapi.FaceMatcher(labeledImages,.6);
+			addToLogs("Loaded FaceMatcher",false);
+		} else {
+			throw new Error("No labeled images found");
+		}
+	} catch (err) {
+		addToLogs(err,true);
+	}
 }
 
-function draw() {
+async function draw() {
 	clear();
 	
 	videoWidth = Math.max(0,Math.min(mainCanvas.getBoundingClientRect().width-8,300));
@@ -79,7 +131,7 @@ function draw() {
 	if (detections) {
 		detections.forEach((detection)=>{
 			const box = detection.detection.detection.box;
-			const match = detection.bestMatch;
+			const match = detection.bestMatch.toString();
 			
 			stroke(0,0,255);
 			strokeWeight(2);
@@ -90,7 +142,9 @@ function draw() {
 			stroke(0);
 			strokeWeight(2);
 			textSize(16);
-			text(match.toString(),box.x,box.y-10);
+			text(match,box.x,box.y-10);
+			
+			addToCurrentRecord(detection.bestMatch.label);
 		});
 	}
 }
