@@ -9,20 +9,31 @@
 			<div class="flexbox">
 				<div class="flex box">
 					<h3 class="center">For Unregistered</h3>
-					<button class="mainPageButton" onclick="f('/registration',400,218);">Start Registration</button>
+					<button class="mainPageButton" onclick="f('/registration',400,218)">Start Registration</button>
 				</div>
 				<div class="flex box">
 					<h3 class="center">For Verification</h3>
-					<button class="mainPageButton" onclick="f('/verification',700,450);">Verify Identity</button>
+					<button class="mainPageButton" onclick="f('/verification',700,450)">Verify Identity</button>
 				</div>
 				<div class="flex box">
 					<h3 class="center">Records</h3>
-					<button class="mainPageButton" onclick="f('/current-record',400,400);">Today</button>
-					<button class="mainPageButton" onclick="f('/archive',400,400);">Archive</button>
+					<button class="mainPageButton" onclick="openCurrentRecord()">Today</button>
+					<button class="mainPageButton" onclick="f('/archive',400,400)">Archive</button>
 				</div>
 			</div>
 		</div>
 		<script>
+			function openCurrentRecord() {
+				let pad = (n) => n.toString().padStart(2,"0");
+	
+				let now = new Date();
+				let year = now.getFullYear();
+				let month = pad(now.getMonth()+1);
+				let day = pad(now.getDate());
+				
+				f(`/record?year=${year}&month=${month}&day=${day}`,400,400);
+			}
+			
 			function f(url,w,h) {
 				window.open(url,"_blank",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`)
 			}

@@ -1,4 +1,5 @@
 let mainCanvas = document.getElementById("canvas");
+let ding = document.getElementById("ding");
 
 let aspectRatio = 4/3;
 let captureCount = 0;
@@ -63,13 +64,13 @@ async function detectFaces() {
 }
 
 function preload() {
-	const p = "./models";
+	const path = "./models";
 		
 	Promise.all([
-		faceapi.nets.tinyFaceDetector.loadFromUri(p),
-		faceapi.nets.faceLandmark68Net.loadFromUri(p),
-		faceapi.nets.faceRecognitionNet.loadFromUri(p),
-		faceapi.nets.faceExpressionNet.loadFromUri(p)
+		faceapi.nets.tinyFaceDetector.loadFromUri(path),
+		faceapi.nets.faceLandmark68Net.loadFromUri(path),
+		faceapi.nets.faceRecognitionNet.loadFromUri(path),
+		faceapi.nets.faceExpressionNet.loadFromUri(path)
 	]);
 		
 	console.log("loaded models");
@@ -109,6 +110,9 @@ function draw() {
 				
 				saveFaceData(document.getElementById("name").value,captureCount,canvas.canvas.toDataURL("image/jpeg"));
 				captureCount += 1;
+				ding.currentTime = 0;
+				ding.play();
+				
 				document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
 			}
 			
