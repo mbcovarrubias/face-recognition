@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	<body>
+		<div class="box" id="box">
+			<h2 class="center">Archive</h2>
+			<ul id="dateList"></ul>
+		</div>
+		<script>
+			let archive = <%- dates %>;
+			archive.forEach(date=>{
+				let li = document.createElement("li");
+				let a = document.createElement("a");
+				let split = date.date.split("-"); // [year, month, day]
+				
+				a.innerHTML = date.date;
+				a.href = `/record?year=${split[0]}&month=${split[1]}&day=${split[2]}`;
+				
+				li.appendChild(a);
+				document.getElementById("dateList").appendChild(li);
+			})
+		</script>
+	</body>
+</html>
