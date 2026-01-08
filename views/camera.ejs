@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Camera</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.9/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  </head>
+  <body>
+	<div class="box" style="margin:auto;">
+		<form name="camera" method="post" id="cameraForm" action="/">
+			<div class="gridbox" style="width:100%;">
+				<div class="box" id="canvas" style="grid-row: 1/span 2; margin:4px;">
+					<!-- create main element here so p5.js will use it here instead of creating it by itself in the body-->
+					<main>
+					</main>
+				</div>
+				<div class="box" style="grid-row: 2; margin:4px;">
+					<h4 class="center">Instructions</h4>
+					<ol>
+						<li>Click "Capture" to start face detection.</li>
+						<li>Face different directions slightly off from the camera.</li>
+						<li>Once done capturing, click "Next" to finish registration.</li>
+					</ol>
+					<hr/>
+					<p id="captures">Faces captured: N/A</p>
+					<p id="face">Detecting face: N/A</p>
+					<hr/>
+					<button class="button" type="button" id="capture">Capture</button>
+					<button class="button" type="button" id="next" disabled>Next</button>
+				</div>
+
+				<input type="hidden" name="action" id="action" value="regfinish">
+				<input type="hidden" name="name" id="name" value="<%= name %>">
+				
+				<audio id="ding">
+					<source src="ding.mp3" type="audio/mp3">
+				</audio>
+				<script src="camera.js"></script>
+			</div>
+		</form>
+	</div>
+  </body>
+</html>
