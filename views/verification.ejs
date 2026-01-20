@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Face</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.9/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  </head>
+  <body>
+	<div class="box" style="margin:auto;">
+		<div class="gridbox" style="width:100%;">
+			<div class="box" id="canvas" style="grid-row: 1; margin:4px;">
+				<!-- create main element here so p5.js will use it here instead of creating it by itself in the body-->
+				<main>
+				</main>
+			</div>
+			<div class="box" style="grid-row: 1; margin:4px;">
+				<h4 class="center">Notes</h4>
+				<ol>
+					<li>If you feel something is not working right, check the console of your browser (Ctrl+Shift+J), then reload (Ctrl+R).</li>
+					<li>"Loaded FaceMatcher" indicates that everything was loaded successfully. If you do not see the "Loaded FaceMatcher" in the logs, try reloading and wait for it. If it does not work, try again.</li>
+				</ol>
+				<button class="button" type="button" onclick="openCurrentRecord()">View Current Record</button>
+			</div>
+			<div class="box" style="grid-row: 2; margin:4px; grid-column: 1 / span 2; padding: 4px 0 0 0;">
+				<h4 class="center">Logs</h4>
+				<div class="logs" id="logs"></div>
+			</div>
+		</div>
+		<script src="verification.js"></script>
+		<script>
+			function openCurrentRecord() {
+				let pad = (n) => n.toString().padStart(2,"0");
+	
+				let now = new Date();
+				let year = now.getFullYear();
+				let month = pad(now.getMonth()+1);
+				let day = pad(now.getDate());
+				
+				f(`/record?year=${year}&month=${month}&day=${day}`,400,400);
+			}
+			
+			function f(url,w,h) {
+				window.open(url,"_blank",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`)
+			}
+		</script>
+	</div>
+  </body>
+</html>
