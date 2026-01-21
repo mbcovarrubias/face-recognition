@@ -11,3 +11,15 @@ WIP, some features may not work yet
 7. a link that redirects to the facial recognition system will be provided if the command ran successfully 
 8. if there are modules missing, install the missing module by using the "npm install" command, then repeat step 6
 9. copy the link provided and paste it to a web browser
+
+## for .env file
+These are the keys used the .env file:
+* PORT - port number (e.g. 3000)
+* DB_HOST - using "localhost"
+* DB_NAME - using "face-recognition"
+* DB_USER - using "root"
+* DB_PASSWORD - using ""
+* AUTH_USER - your email
+* AUTH_PASS - your app password
+* GH_PAT - your github PAT
+* GH_BASE_URL - using "https://api.github.com/repos/mbcovarrubias/face-recognition/contents/"
