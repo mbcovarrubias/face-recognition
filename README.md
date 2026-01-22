@@ -21,7 +21,7 @@ https://github.com/justadudewhohacks/face-api.js
 10. Copy the link provided and paste it to a web browser.
 
 ## For .env file
-These are the keys used the .env file:
+These are the keys used in the .env file:
 * PORT - port number (e.g. 3000)
 * DB_HOST - using "localhost"
 * DB_NAME - using "face-recognition"
