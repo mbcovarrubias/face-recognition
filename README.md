@@ -1,13 +1,13 @@
 # face-recognition
 WIP, some features may not work yet
 
-The application uses the face-api.js library by justadudewhohacks.
-https://github.com/justadudewhohacks/face-api.js
 
+## Libraries used
+* face-api.js by justadudewhohacks https://github.com/justadudewhohacks/face-api.js
+* p5.js
 ## Required software
 * Node.js
 * XAMPP
-
 ## How to set up
 1. Download necessary software
 2. In XAMPP start the MySQL module
