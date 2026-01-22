@@ -1,5 +1,9 @@
 # face-recognition
 WIP, some features may not work yet
+
+The application uses the face-api.js library by justadudewhohacks.
+https://github.com/justadudewhohacks/face-api.js
+
 ## Required software
 * Node.js
 * XAMPP
