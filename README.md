@@ -1,18 +1,22 @@
 # face-recognition
 WIP, some features may not work yet
+## Required software
+* Node.js
+* XAMPP
 
 ## How to set up
-1. download node.js and XAMPP if don't have
-2. in XAMPP start the MySQL module
-3. download and extract this repository anywhere. it's recommended to extract it in your user's directory.
-4. open any shell (cmd, powershell, etc.) and change directory to where the face-recognition folder is located.
-5. type "npm run hr" (hr is the alias for hard reset) in the shell you are using. this will ensure that the system works properly, especially when handling databases.
-6. to start the system, type "npm run start" or "npm start"
-7. a link that redirects to the facial recognition system will be provided if the command ran successfully 
-8. if there are modules missing, install the missing module by using the "npm install" command, then repeat step 6
-9. copy the link provided and paste it to a web browser
+1. Download necessary software
+2. In XAMPP start the MySQL module
+3. Download this repository and extract its zip file anywhere. It is recommended to extract it in your user folder.
+4. Create .env file in the main folder (where public and views folder are located). See "For .env file" below.
+5. Open any command line program (cmd, powershell, etc.) then change directory to the main folder.
+6. Type "npm run hr" (hr is the alias for hard reset) in the shell you are using. this will ensure that the system works properly, especially when handling databases.
+7. To start the application, type "npm run start" or "npm start"
+8. A link that redirects to the facial recognition system will be provided if the command ran successfully 
+9. If there are modules missing, install the missing module by using the "npm install" command, then try starting the application again.
+10. Copy the link provided and paste it to a web browser.
 
-## for .env file
+## For .env file
 These are the keys used the .env file:
 * PORT - port number (e.g. 3000)
 * DB_HOST - using "localhost"
