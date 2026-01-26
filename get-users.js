@@ -1,14 +1,15 @@
-const mysql = require('mysql');
+let mysql = require('mysql');
+let util = require("util");
 
-const db = mysql.createConnection({ host:"localhost",user:"root",password:"",database:"face-recognition"});
-	
-db.connect(err=>{
-	db.query(`SELECT * FROM RegisteredUsers`,(err,res)=>{
-		if (err) return;
-		console.log(res.map((i)=>{
-			return i.name;
-		}));
-	});
+require("dotenv").config();
+let pool = mysql.createPool({
+	connectionLimit: 1,
+	host: process.env.DB_HOST,
+	user: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	database: process.env.DB_NAME
+});
 
-	db.end();
-})
+let query = util.promisify(pool.query).bind(pool);
+query(`SELECT * FROM RegisteredUsers`)
+.then(data=>console.log(data));
