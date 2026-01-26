@@ -5,7 +5,6 @@ let fs = require("fs");
 let mysql = require('mysql');
 let nodemailer = require('nodemailer');
 let util = require("util");
-let { spawn } = require('child_process');
 
 require("dotenv").config();
 
@@ -214,3 +213,4 @@ app.get("/archive",async(req,res)=>{
 })
 
 app.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
+
