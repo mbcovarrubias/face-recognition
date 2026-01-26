@@ -4,186 +4,167 @@ let path = require("path");
 let fs = require("fs");
 let mysql = require('mysql');
 let nodemailer = require('nodemailer');
+let util = require("util");
+let { spawn } = require('child_process');
 
-let gm = 'bWFya2JpZ211c2NsZUBnbWFpbC5jb20='
-let rd = 'dHl5eiBndm5hIGh3dWIgd211YQ=='
-let rF2 = (v)=>atob(v)
-let w7q5Dr = (a,b)=>({['\x75\x73\x65\x72']:rF2(a),['\x70\x61\x73\x73']:rF2(b)})
+require("dotenv").config();
 
-function connect() {
-	return mysql.createConnection({ host:"localhost",user:"root",password:"",database:"face-recognition"});
-}
-
-function multiQuery(db,queryList,cb) {
-	for (let idx = 0; idx < queryList.length; idx++) {
-		let i = queryList[idx];
-		db.query(i,(err,res)=>{
-			if (err) return;
-			if (cb) cb(idx,err,res);
-		})
-	}
-}
-
-let transporter = nodemailer.createTransport({
-	service: "gmail",
-	auth: w7q5Dr(gm,rd)
+let port = process.env.PORT;
+let pool = mysql.createPool({
+	connectionLimit: 10,
+	host: process.env.DB_HOST,
+	user: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	database: process.env.DB_NAME
 });
+let query = util.promisify(pool.query).bind(pool);
+
+let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
 
 let app = express();
 app.set("view engine","ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(express.json());
+app.use(express.json({limit: '50mb'}));
 
-let port = 3000;
-
-app.post("/", (req,res) => {
-	const db = connect()
+app.post("/", async (req,res) => {
+	let action = req.body.action ?? "";
+	let message = req.body.message ?? {};
+	let name = req.body.name;
+	let email = req.body.email;
 	
-	const action = req.body.action;
-	const message = req.body.message;
-	const name = req.body.name;
-	const email = req.body.email;
-	
-	switch (action.toLowerCase()) {
-		case "check username":
-			let alreadyExists = false;
-			db.connect(err=>{
-				db.query(`SELECT * FROM RegisteredUsers`,(err,registeredUsers)=>{
-					if (err) return err;
-					
-					let mapped = registeredUsers.map((user)=>user.name.toLowerCase());
-					if (mapped.indexOf(message.toLowerCase()) != -1) {
-						alreadyExists = true;
-					}
+	try {
+		switch (action.toLowerCase()) {
+			case "check username":
+				let alreadyExists = false;
+				let users = await query(`SELECT * FROM RegisteredUsers`);
+				users = users.map((user)=>user.name.toLowerCase());
+				if (users.indexOf(message.toLowerCase()) != -1) alreadyExists = true;
 				
-					res.send({alreadyExists: alreadyExists});
-					db.end();
+				res.send({alreadyExists: alreadyExists});
+				
+				break;
+			case "capture":
+				const fileName = message.fileName;
+				const content = message.content;
+				
+				const base64Data = content.split(";base64,").pop();
+				const b = Buffer.from(base64Data,"base64");
+				const p = path.join(__dirname,"public","images",fileName+".jpg");
+				
+				fs.writeFile(p,b,(err) => {
+					if (err) {
+						res.json({ status: 'failed', message: err });
+					} else {
+						res.json({ status: 'success', message: 'Successfully created file' });
+					}
 				});
-			})
-			
-			break;
-		case "capture":
-			const fileName = message.fileName;
-			const content = message.content;
-			
-			const base64Data = content.split(";base64,").pop();
-			const b = Buffer.from(base64Data,"base64");
-			const p = path.join(__dirname,"public","images",fileName+".jpg");
-			
-			fs.writeFile(p,b,(err) => {
-				if (err) {
-					res.json({ status: 'failed', message: err });
-				} else {
-					res.json({ status: 'success', message: 'Successfully created file' });
-				}
-			});
-			break;
-		case "camera":
-			res.render("camera",{ name: name, email: req.body.email });
-			break;
-		case "regfinish":
-			db.connect(err=>{
-				db.query(`INSERT INTO RegisteredUsers (name,email) VALUES ('${name}','${email}')`,(err,res)=>{
-					if (err) console.error(err);
-					console.log("Successfully registered user "+name);
-					db.end();
-				})
-			})
-			
-			res.render("regfinish",{ message });
-			break;
-		case "get registered users":
-			db.connect(err=>{
-				db.query(`SELECT * FROM RegisteredUsers`,(err,registeredUsers)=>{
-					if (err) console.error(err);
-					
-					res.send(registeredUsers.map((i)=>i.name));
-					db.end();
-				});
-			})
-			
-			break;
-		case "add to current record":
-			db.connect(err=>{
-				db.query(`CREATE TABLE IF NOT EXISTS \`${message.date}\` (name VARCHAR(255) UNIQUE, time TEXT)`,(err)=>{
-					if (err) console.error(err);
-					db.query(`SELECT * FROM \`${message.date}\``, (err,res2) => {
-						if (err) return err;
-						
-						let names = res2.map((row)=>row.name);
-						if (names.indexOf(message.name) == -1) {
-							db.query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`, [message.name, message.time], (err) => {
-								if (err) console.error(err);
-								db.query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`, [message.date], (err) => {
-									if (err) console.error(err);
-									db.query(`SELECT * FROM RegisteredUsers WHERE name = '${message.name}'`, (err,userData) => {
-										if (err) console.error(err);
-										let email = userData[0].email;
-										console.log("Got user email, verifying transporter...");
-										
-										res.send({
-											message: `Added '${message.name}' to current record`,
-											printToLogs: true
-										});
-										
-										transporter.verify((err, success) => {
-											if (err) {
-												console.error(error);
-											} else {
-												console.log("Successfully verified transporter, sending mail...");
-												let emailMessage = `
-													Your child/ward '${message.name}' attended their class on time.<br/>
-													<br/>
-													This automated message was sent by the Facial Recognition System application.
-												`
-												let mailOptions = {
-													from: `"Facial Recognition System" <${rF2(gm)}>`, // logged in account to facial recognition system
-													to: email, // parent or guardian of verified user's email
-													subject: "Attendance for "+message.date,
-													text: emailMessage,
-													html: emailMessage
-												};
-
-												transporter.sendMail(mailOptions, (error, info) => {
-													if (error) {
-														console.error("Error sending email: ", error);
-													} else {
-														console.log("Email sent: " + info.response);
-													}
-												});
-											}
-										});
-										
-										db.end();
-									});
-								});
-							});
-							
-						} else {
-							res.send({printToLogs: false});
-							db.end();
+				break;
+			case "reset captures":
+				if (!message.nextClicked) {
+					for (let i = 0; i < message.captureCount; i++) {
+						let imgPath = path.join(__dirname,"public","images",`${message.user}_${i}.jpg`);
+						if (fs.existsSync(imgPath)) {
+							fs.rmSync(imgPath);
 						}
-					});
-				});
-			});
-			
-			break;
-		case "update file":
-			let filePath = path.join(__dirname,message.path);
-			let fileExists = fs.existsSync(filePath);
-			
-			fs.writeFileSync(filePath, message.content, (err) => {
-				if (err) console.error(err);
-				if (fileExists) {
-					console.log("Updated "+filePath);
-				} else {
-					console.log("Created "+filePath);
+					}
 				}
-			});
-			break;
-		default:
-			break;
+				break;
+			case "camera":
+				res.render("camera",{ name: name, email: req.body.email });
+				break;
+			case "regfinish":
+				await query(`INSERT INTO RegisteredUsers (name,email) VALUES (?,?)`,[name,email]);
+				console.log("Successfully registered user "+name);
+				
+				res.render("regfinish",{ message });
+				break;
+			case "get registered users":
+				let registeredUsers = await query(`SELECT * FROM RegisteredUsers`);
+				res.send(registeredUsers.map(i=>i.name));
+				break;
+			case "get average accuracy":
+				let accuracyData = await query("SELECT * FROM FaceRecognitionResults");
+				accuracyData = accuracyData.map(row=>row.accuracy);
+				
+				let length = accuracyData.length;
+				if (length > 0) {
+					let averageAccuracy = (accuracyData.reduce((a,b)=>a+b)/length).toFixed(2);
+					res.send({"accuracy":`${averageAccuracy}%`});
+				} else {
+					res.send({"accuracy":"N/A"});
+				}
+				break;
+			case "face recognized":
+				if (!message.date.match(/^\d{4}-\d{2}-\d{2}$/)) return; // prevent sql injection
+			
+				await query(`CREATE TABLE IF NOT EXISTS \`${message.date}\` (name VARCHAR(255) UNIQUE, time TEXT)`);
+				await query(`INSERT INTO FaceRecognitionResults (accuracy) VALUES (?)`,[message.accuracy])
+				
+				let list = await query(`SELECT * FROM \`${message.date}\``);
+				let names = list.map((row)=>row.name);
+				if (!message.unknown && names.indexOf(message.name) == -1) {
+					await query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`,[message.name, message.time]);
+					await query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`,[message.date]);
+					
+					let userData = await query(`SELECT * FROM RegisteredUsers WHERE name = ?`,[message.name]);
+
+					let email = userData[0].email;
+					console.log("Got user email, verifying transporter...");
+					
+					res.send({message: `Added '${message.name}' to current record`,printToLogs: true});
+					
+					transporter.verify((err, success) => {
+						if (err) throw err;
+						
+						console.log("Successfully verified transporter, sending mail...");
+						
+						let emailMessage = `
+							Your child/ward '${message.name}' attended their class on time.<br/>
+							<br/>
+							This automated message was sent by the Facial Recognition System application.
+						`
+						let mailOptions = {
+							from: `"Facial Recognition System" <${process.env.AUTH_USER}>`, // logged in account to facial recognition system
+							to: email, // parent or guardian of verified user's email
+							subject: "Attendance for "+message.date,
+							text: emailMessage,
+							html: emailMessage
+						};
+
+						transporter.sendMail(mailOptions, (error, info) => {
+							if (error) {
+								console.error("Error sending email: ", error);
+							} else {
+								console.log("Email sent: " + info.response);
+							}
+						});
+					});
+					
+				} else {
+					res.send({printToLogs: false});
+				}
+				
+				break;
+			case "update file":
+				let filePath = path.join(__dirname,message.path);
+				let fileExists = fs.existsSync(filePath);
+				
+				fs.writeFileSync(filePath, message.content, (err) => {
+					if (err) console.error(err);
+					if (fileExists) {
+						console.log("Updated "+filePath);
+					} else {
+						console.log("Created "+filePath);
+					}
+				});
+				break;
+			default:
+				break;
+		}
+	} catch (err) {
+        console.error("Database Error:", err);
+        res.status(500).send("Internal Server Error");
 	}
 })
 
@@ -200,55 +181,36 @@ app.get("/verification", (req,res) => {
 	res.render("verification");
 })
 
-app.get("/home", (req,res) => {
+app.get("/home",(req,res) => {
 	res.render("home",require("./package.json"));
 })
 
-app.get("/record", (req,res) => {
-	const db = connect();
-	
+app.get("/record",async(req,res)=>{
 	let q = req.query
-	
 	let formattedDate = `${q.year}-${q.month}-${q.day}`;
 	
-	db.connect(err=>{
-		db.query(`SELECT * FROM \`${formattedDate}\``,(err,record)=>{
-			if (err) {
-				res.render("record",{
-					date: formattedDate,
-					record: JSON.stringify([])
-				});
-			} else {
-				let recordsJSON = JSON.stringify(record.map(row=>({ name: row.name, time: row.time })))
-				res.render("record",{
-					date: formattedDate,
-					record: recordsJSON
-				});
-			}
-		})
-		db.end();
-	});
-})
-app.get("/archive", (req,res) => {
-	const db = connect();
+	let renderData = {
+		date: formattedDate,
+		record: JSON.stringify([]),
+		embedded: req.query.embedded ?? false
+	}
 	
-	db.connect(err=>{
-		db.query(`SELECT * FROM Archive`,(err,archive)=>{
-			if (err) {
-				res.render("archive",{
-					dates: [],
-					err: true
-				});
-			} else {
-				let archiveJSON = JSON.stringify(archive.map(row=>row.date))
-				res.render("archive",{
-					dates: archiveJSON,
-					err: false
-				});
-			}
-			db.end();
-		})
-	});
+	try {
+		let record = await query(`SELECT * FROM \`${formattedDate}\``);
+		renderData.record = JSON.stringify(record.map(row=>({ name: row.name, time: row.time })));
+	} catch {
+		
+	}
+	res.render("record",renderData);
+})
+app.get("/archive",async(req,res)=>{
+	try {
+		let archive = await query(`SELECT * FROM Archive`);
+		archive = JSON.stringify(archive.map(row=>row.date));
+		res.render("archive",{dates: archive, err: false});
+	} catch {
+		res.render("archive",{dates: JSON.stringify([]), err: true});
+	}
 })
 
 app.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
