@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+	</head>
+	<body>
+		<div class="box">
+			<h2 class="center">Archive</h2>
+			<table class="archive">
+				<tbody id="archiveTableBody">
+					<tr class="header">
+						<th>Date</th>
+						<th>No. of present</th>
+					</tr>
+				</tbody>
+			</table>
+			<div class="center archive-nav">
+				<button id="first" onclick="switchPage(1)">&lt;&lt;</button>
+				<button id="prev" onclick="switchPage(page-1)">&lt;</button>
+				<span id="page-no"></span>
+				<button id="next" onclick="switchPage(page+1)">&gt;</button>
+				<button id="last" onclick="switchPage(maxPages)">&gt;&gt;</button>
+			</div>
+			<hr/>
+			<button type="button" class="button" onclick="window.close();">Back to Home</button>
+		</div>
+		<script>
+			let archive = <%- dates %>;
+			let rowElements = [];
+			
+			let rowsPerPage = 10;
+			let page = 1;
+			let columns = 2;
+			let maxPages = Math.ceil(archive.length/rowsPerPage);
+			
+			function fillRest(list,length) {
+				let n = list.length;
+				for (let i = 0; i < length-n; i++) {
+					list.push({});
+				}
+			}
+			
+			function update() {
+				rowElements.forEach(row=>row.remove());
+				rowElements = [];
+				
+				let coef = rowsPerPage * (page-1);
+				
+				let portion = archive.slice(coef,coef+9);
+				
+				fillRest(portion,rowsPerPage);
+				
+				portion.forEach(row=>{
+					let tr = document.createElement("tr");
+					let values = Object.values(row);
+					for (let i = 0; i < 2; i++) {
+						let td = document.createElement("td");
+						
+						if (values.length > 0) {
+							let val = values[i];
+							if (i == 0) {
+								let split = val.split("-");
+								let a = document.createElement("a");
+								a.innerHTML = val;
+								a.href = `/record?year=${split[0]}&month=${split[1]}&day=${split[2]}`
+								td.appendChild(a);
+							} else {
+								td.innerHTML = val;
+							}
+						} else {
+							td.innerHTML = "&nbsp;";
+						}
+						
+						tr.appendChild(td);
+						rowElements.push(tr);
+					}
+					
+					document.getElementById("archiveTableBody").appendChild(tr);
+				})
+				
+				document.getElementById("page-no").innerHTML = `${page} / ${maxPages}`
+			}
+			
+			function switchPage(n) {
+				page = Math.max(1,Math.min(n,maxPages));
+				update();
+			}
+			
+			update();
+		</script>
+	</body>
+</html>

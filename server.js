@@ -5,6 +5,7 @@ let fs = require("fs");
 let mysql = require('mysql');
 let nodemailer = require('nodemailer');
 let util = require("util");
+let { spawn } = require('child_process');
 
 require("dotenv").config();
 
@@ -192,7 +193,7 @@ app.get("/record",async(req,res)=>{
 		date: formattedDate,
 		record: JSON.stringify([]),
 		embedded: req.query.embedded ?? false
-	}
+	};
 	
 	try {
 		let record = await query(`SELECT * FROM \`${formattedDate}\``);
@@ -205,7 +206,13 @@ app.get("/record",async(req,res)=>{
 app.get("/archive",async(req,res)=>{
 	try {
 		let archive = await query(`SELECT * FROM Archive`);
-		archive = JSON.stringify(archive.map(row=>row.date));
+		archive = archive.map(async(row)=>{
+			let recordData = await query(`SELECT * FROM \`${row.date}\``);
+			return {date: row.date, present: recordData.length};
+		});
+		archive = await Promise.all(archive);
+		archive = JSON.stringify(archive);
+		
 		res.render("archive",{dates: archive, err: false});
 	} catch {
 		res.render("archive",{dates: JSON.stringify([]), err: true});
@@ -213,4 +220,3 @@ app.get("/archive",async(req,res)=>{
 })
 
 app.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
-

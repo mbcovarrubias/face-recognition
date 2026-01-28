@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	<body>
+		<div class="box home-page-box">
+			<h2 class="center">Face Recognition System</h2>
+			<p class="center">v<%= version %></p>
+			<div class="gridbox">
+				<div class="box">
+					<iframe id="record"></iframe>
+				</div>
+				<div class="box">
+					<button class="home-page-button" onclick="f('/registration',400,318)">Register</button>
+					<button class="home-page-button" onclick="f('/verification',700,450)">Verify Identity</button>
+					<button class="home-page-button" onclick="f('/archive',400,416)">Archive</button>
+				</div>
+				<div class="box statistics">
+					<div>
+						<p id="user-count">-</p>
+						<p>User/s registered</p>
+					</div>
+					<div>
+						<p id="accuracy">-</p>
+						<p>Average facial recognition accuracy</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			let windows = {};
+			
+			function f(url,w,h) {
+				let wnd = window.open(url,"_blank",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`);
+				console.log(wnd);
+			}
+			
+			function update() {
+				// today's attendance record
+				let pad = n=>n.toString().padStart(2,"0");
+		
+				let now = new Date();
+				let year = now.getFullYear();
+				let month = pad(now.getMonth()+1);
+				let day = pad(now.getDate());
+				
+				document.getElementById("record").src = `/record?year=${year}&month=${month}&day=${day}&embedded=true`;
+				
+				// statistics
+				fetch("/",{
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify({action: "get registered users"})
+				})
+				.then(res=>res.json())
+				.then(registeredUsers=>document.getElementById("user-count").innerHTML = registeredUsers.length)
+				.catch(()=>document.getElementById("user-count").innerHTML = "Error");
+				
+				fetch("/",{
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify({action: "get average accuracy"})
+				})
+				.then(res=>res.json())
+				.then(msg=>document.getElementById("accuracy").innerHTML = msg.accuracy)
+				.catch(()=>document.getElementById("accuracy").innerHTML = "Error");
+			}
+			
+			update();
+			setInterval(update,3e4);
+		</script>
+	</body>
+</html>

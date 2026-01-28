@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+	</head>
+	<body id="body">
+		<div class="box" id="main-box">
+			<h3 class="center"><%= date %></h2>
+			<input type="text" class="searchbar" id="searchbar" placeholder="Search" />
+			<table class="records">
+				<tbody id="recordsTableBody">
+					<tr class="header">
+						<th>Name</th>
+						<th>Time</th>
+					</tr>
+				</tbody>
+			</table>
+			<hr name="hideIfEmbedded" />
+			<button class="button" name="hideIfEmbedded" onclick="window.location.href = window.location.origin + '/archive'">Archive</button>
+		</div>
+		<script>
+			let embedded = <%- embedded %>;
+			let records = <%- record %>;
+			let rowElements = [];
+			
+			if (embedded) {
+				document.getElementById("body").className = "embedded";
+				document.getElementById("main-box").classList.remove("box");
+				document.getElementsByName("hideIfEmbedded").forEach(elt=>{
+					elt.style.display = "none";
+				});
+			}
+			
+			function update() {
+				rowElements.forEach(row=>row.remove());
+				rowElements = [];
+				
+				let keyword = document.getElementById("searchbar").value.toLowerCase();
+				
+				records.forEach(row=>{
+					if (row.name.toLowerCase().startsWith(keyword)) {
+						let tr = document.createElement("tr");
+						tr.id = row.name
+						Object.values(row).forEach((val)=>{
+							let td = document.createElement("td");
+							td.innerHTML = val;
+							tr.appendChild(td);
+						});
+						document.getElementById("recordsTableBody").appendChild(tr);
+						rowElements.push(tr);
+					}
+				})
+			}
+			
+			setInterval(()=>{
+				update();
+			},3e4);
+
+			document.getElementById("searchbar").addEventListener("change",update);
+			update();
+		</script>
+	</body>
+</html>
