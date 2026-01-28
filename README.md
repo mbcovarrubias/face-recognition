@@ -5,7 +5,7 @@ WIP, some features may not work yet
 ## Libraries used
 * face-api.js by justadudewhohacks https://github.com/justadudewhohacks/face-api.js
 * p5.js
-## Required software
+## Prerequisites
 * Node.js
 * XAMPP
 ## How to set up
