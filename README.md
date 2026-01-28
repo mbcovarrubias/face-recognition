@@ -9,7 +9,7 @@ WIP, some features may not work yet
 * Node.js
 * XAMPP
 ## How to set up
-1. Download necessary software
+1. Download prerequisites
 2. In XAMPP start the MySQL module
 3. Download this repository and extract its zip file anywhere. It is recommended to extract it in your user folder.
 4. Create .env file in the main folder (where public and views folder are located). See "For .env file" below.
