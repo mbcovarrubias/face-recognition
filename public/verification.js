@@ -2,7 +2,7 @@ let mainCanvas = document.getElementById("canvas");
 let logs = document.getElementById("logs");
 
 let maxCaptures = 10;
-let targetVideoWidth = 300;
+let targetVideoWidth = 480;
 let videoWidth = mainCanvas.getBoundingClientRect().width-8;
 
 let aspectRatio;
@@ -10,6 +10,7 @@ let canvas;
 let video;
 let detectionInterval;
 let faceMatcher;
+let img;
 
 let detections = [];
 let lastTick = {};
@@ -55,10 +56,15 @@ async function loadLabeledImages() {
 		labels.map(async (label) => {
 			const descriptors = [];
 			for (let i = 0; i < maxCaptures; i++) {
-				const img = await faceapi.fetchImage(`/images/${label}_${i}.jpg`);
-				const singleFaceDescription = await faceapi.detectSingleFace(img, detectionOptions).withFaceLandmarks().withFaceDescriptor();
-				if (singleFaceDescription) {
-					descriptors.push(singleFaceDescription.descriptor);
+				try {
+					const img = await faceapi.fetchImage(`/images/${label}_${i}.jpg`);
+					const singleFaceDescription = await faceapi.detectSingleFace(img, detectionOptions).withFaceLandmarks().withFaceDescriptor();
+					if (singleFaceDescription) {
+						descriptors.push(singleFaceDescription.descriptor);
+					}
+				} catch (err) {
+					console.log(err);
+					break;
 				}
 			}
 			return new faceapi.LabeledFaceDescriptors(label,descriptors);
@@ -115,24 +121,14 @@ function faceRecognized(match) {
 async function preload() {
 	const modelsPath = "./models/face-api";
 		
-	if (isUsingTouchscreen()) {
-		detectionOptions = new faceapi.SsdMobilenetv1Options({minConfidence:.5});
-		Promise.all([
-			faceapi.nets.ssdMobilenetv1.loadFromUri(modelsPath),
-			faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		]);
-	} else {
-		Promise.all([
-			faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-			faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		]);
-	}
-
-	addToLogs("Loaded models",false);
+	Promise.all([
+		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
+		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+	]).then(()=>{
+		addToLogs("Loaded models",false);
+	});
 	
 	try {
 		const labeledImages = await loadLabeledImages();
@@ -148,16 +144,14 @@ async function preload() {
 	}
 }
 
-async function setup() {    
+function setup() {    
 	videoWidth = mainCanvas.getBoundingClientRect().width-8;
 	
-	canvas = createCanvas(videoWidth,videoWidth);
+	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
 	
 	video = createCapture(VIDEO,videoReady);
 	video.size(width,height);
 	video.hide();
-	
-	//initLiveness();
 }
 
 function videoReady() {
@@ -167,8 +161,6 @@ function videoReady() {
 	let vHeight = track.height;
 	
 	aspectRatio = vWidth/vHeight;
-	
-	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
 }
 
 function draw() {
@@ -178,7 +170,7 @@ function draw() {
 		videoWidth = Math.max(0,Math.min(mainCanvas.getBoundingClientRect().width-8,targetVideoWidth));
 		resizeCanvas(videoWidth,videoWidth/aspectRatio);
 		video.size(width,height);
-
+		
 		image(video,0,0);
 
 		//if (isLive && detections) {
@@ -203,6 +195,10 @@ function draw() {
 	}
 }
 
+screen.orientation.addEventListener("change",()=>{
+	setTimeout(setup,500);
+});
+
 setInterval(async ()=>{
 	if (video.loadedmetadata && faceMatcher) {
 		let DWLM = await faceapi.detectAllFaces(video.elt,detectionOptions).withFaceLandmarks().withFaceDescriptors();
@@ -216,4 +212,4 @@ setInterval(async ()=>{
 			};
 		});
 	}
-},500);
+},200);

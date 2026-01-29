@@ -4,7 +4,7 @@ let captureCount = 0;
 let captureDelay = 400; // in milliseconds
 let lastTick = 0;
 let maxCaptures = 10;
-let targetVideoWidth = 300;
+let targetVideoWidth = 480;
 let videoWidth = mainCanvas.getBoundingClientRect().width-8;
 
 let detections = [];
@@ -66,25 +66,34 @@ async function detectFaces() {
 
 function preload() {
 	const modelsPath = "./models/face-api";
+	
+	Promise.all([
+		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
+		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+	]).then(()=>{
+		addToLogs("Loaded models",false);
+	});
 		
-	if (isUsingTouchscreen()) {
-		detectionOptions = new faceapi.SsdMobilenetv1Options({minConfidence:.5});
-		Promise.all([
-			faceapi.nets.ssdMobilenetv1.loadFromUri(modelsPath),
-			faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		]);
-	} else {
-		Promise.all([
-			faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-			faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		]);
-	}
+	// if (isUsingTouchscreen()) {
+		// detectionOptions = new faceapi.SsdMobilenetv1Options({minConfidence:.5});
+		// Promise.all([
+			// faceapi.nets.ssdMobilenetv1.loadFromUri(modelsPath),
+			// faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+			// faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+			// faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+		// ]);
+	// } else {
+		// Promise.all([
+			// faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
+			// faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+			// faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+			// faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+		// ]);
+	// }
 		
-	console.log("loaded models");
+	// console.log("loaded models");
 	
 	document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
 	document.getElementById("face").innerHTML = `Detecting face: ${detections.length>0?"yes":"no"}`;
@@ -122,12 +131,13 @@ function preload() {
 	});
 }
 
-function setup() {
+function setup() {    
 	videoWidth = mainCanvas.getBoundingClientRect().width-8;
+	
+	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
 	
 	video = createCapture(VIDEO,videoReady);
 	video.size(width,height);
-	
 	video.hide();
 }
 
@@ -138,8 +148,6 @@ function videoReady() {
 	let vHeight = track.height;
 	
 	aspectRatio = vWidth/vHeight;
-	
-	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
 }
 
 function draw() {
@@ -187,3 +195,11 @@ function draw() {
 		}
 	}
 }
+
+screen.orientation.addEventListener("change",()=>{
+	setTimeout(setup,500);
+});
+
+// window.addEventListener("resize",()=>{
+	// setTimeout(setup,500);
+// });
