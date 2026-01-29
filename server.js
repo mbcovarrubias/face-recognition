@@ -5,7 +5,7 @@ let fs = require("fs");
 let mysql = require('mysql');
 let nodemailer = require('nodemailer');
 let util = require("util");
-let { spawn } = require('child_process');
+let qrcode = require("qrcode");
 
 require("dotenv").config();
 
@@ -17,6 +17,8 @@ let pool = mysql.createPool({
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME
 });
+let qrCodeOptions = {width: 300, margin: 2};
+
 let query = util.promisify(pool.query).bind(pool);
 
 let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
@@ -170,6 +172,21 @@ app.get("/verification", (req,res) => {
 
 app.get("/home",(req,res) => {
 	res.render("home",require("./package.json"));
+})
+
+app.get("/qr",async(req,res) => {
+	let qrCodes = {};
+	try {
+		let url1 = await qrcode.toDataURL("https://"+req.headers.host+"/registration",qrCodeOptions);
+		let url2 = await qrcode.toDataURL("https://forms.gle/gczGuNcUgXmD8v1MA",qrCodeOptions);
+		
+		qrCodes.Registration = url1;
+		qrCodes["Evaluation Survey"] = url2;
+		
+		res.render("qr",{qrCodes:JSON.stringify(qrCodes)});
+	} catch (err) {
+		console.error(err);
+	}
 })
 
 app.get("/record",async(req,res)=>{
