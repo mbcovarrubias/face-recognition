@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+	</head>
+	<body id="body">
+		<div class="box qr-box">
+			<h2 class="center">QR Codes</h2>
+			<div class="gridbox" id="gridbox"></div>
+			<script>
+				let qrCodes = <%- qrCodes %>;
+				Object.keys(qrCodes).forEach(k=>{
+					let box = document.createElement("div");
+					box.className = "box";
+					
+					let h3 = document.createElement("h3");
+					h3.innerHTML = k;
+					h3.className = "center"
+					
+					let div2 = document.createElement("div");
+					div2.className = "center";
+					
+					let img = new Image();
+					img.src = qrCodes[k];
+					img.className = "center";
+					
+					div2.appendChild(img);
+					box.appendChild(h3);
+					box.appendChild(div2);
+					
+					document.getElementById("gridbox").appendChild(box);
+				})
+			</script>
+		</div>
+	</body>
+</html>
