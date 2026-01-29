@@ -11,7 +11,7 @@ require("dotenv").config();
 
 let port = process.env.PORT;
 let pool = mysql.createPool({
-	connectionLimit: 10,
+	connectionLimit: process.env.CONNECTION_LIMIT,
 	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
 	password: process.env.DB_PASSWORD,
@@ -145,19 +145,6 @@ app.post("/", async (req,res) => {
 					res.send({printToLogs: false});
 				}
 				
-				break;
-			case "update file":
-				let filePath = path.join(__dirname,message.path);
-				let fileExists = fs.existsSync(filePath);
-				
-				fs.writeFileSync(filePath, message.content, (err) => {
-					if (err) console.error(err);
-					if (fileExists) {
-						console.log("Updated "+filePath);
-					} else {
-						console.log("Created "+filePath);
-					}
-				});
 				break;
 			default:
 				break;

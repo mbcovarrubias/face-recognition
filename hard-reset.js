@@ -22,7 +22,7 @@ console.log("Cleared images folder");
 query("DROP DATABASE IF EXISTS `face-recognition`");
 query("CREATE DATABASE `face-recognition`");
 query("USE `face-recognition`");
-query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE, email VARCHAR(255) UNIQUE)");
+query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE, email VARCHAR(255))");
 query("CREATE TABLE FaceRecognitionResults (accuracy DECIMAL(5,2))");
 query("CREATE TABLE Archive (date VARCHAR(255) UNIQUE)")
 .then(()=>{
