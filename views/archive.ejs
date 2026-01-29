@@ -32,7 +32,7 @@
 			let rowsPerPage = 10;
 			let page = 1;
 			let columns = 2;
-			let maxPages = Math.ceil(archive.length/rowsPerPage);
+			let maxPages = Math.ceil(Math.max(1,archive.length)/rowsPerPage);
 			
 			function fillRest(list,length) {
 				let n = list.length;
