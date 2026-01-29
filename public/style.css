@@ -128,6 +128,17 @@ iframe#record {
 	height:100%;
 }
 
+/* qr codes */
+
+body > div.qr-box {
+	width: fit-content;
+	margin: auto;
+}
+
+body > div.qr-box .gridbox > div {
+	margin: 4px;
+}
+
 /* registration */
 
 body > div.registration-box1 {
@@ -266,5 +277,9 @@ table.archive td a {
 	
 	body > div.registration-box2 .gridbox > :nth-child(2) {
 		grid-row: 2; 
+	}
+	
+	body > div.qr-box .gridbox {
+		grid-template-columns: auto;
 	}
 }
