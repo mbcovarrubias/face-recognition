@@ -22,11 +22,12 @@ WIP, some features may not work yet
 
 ## For .env file
 These are the keys used in the .env file:
-* PORT - port number (e.g. 3000)
+* PORT - default is 3000
 * DB_HOST - using "localhost"
 * DB_NAME - using "face-recognition"
 * DB_USER - using "root"
 * DB_PASSWORD - using ""
+* CONNECTION_LIMIT - default is 40
 * AUTH_USER - your email
 * AUTH_PASS - your app password
 * GH_PAT - your github PAT
