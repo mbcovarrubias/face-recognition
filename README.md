@@ -11,15 +11,24 @@ Purpose of creation of this repository is for the following reasons:
 ## Prerequisites
 * Node.js
 * XAMPP
-* Git
+* Git (optional)
 ## Installation
-The codes below are meant to be typed in command line programs (cmd, powershell, etc.)
+The codes below are meant to be typed in any command line programs (cmd, powershell, etc.)
+### With Git
 1. Clone this repository:
 ```bash
 git clone https://github.com/mbcovarrubias/face-recognition.git
 ```
 2. Change directory:
 ```bash
+cd face-recognition
+```
+### Without Git
+1. Install repository as a .zip file
+2. In the .zip file, navigate to directory where package.json is located
+3. Open any command line program (cmd, powershell, etc.) and change directory
+```bash
+...
 cd face-recognition
 ```
 ## Setup
