@@ -35,36 +35,23 @@ npm start
 ```
 
 ## For .env file
-These are the keys used in the .env file:
-* PORT - default is 3000
-* DB_HOST - using "localhost"
-* DB_NAME - using "face-recognition"
-* DB_USER - using "root"
-* DB_PASSWORD - using ""
-* CONNECTION_LIMIT - default is 40
-* AUTH_USER - your email
-* AUTH_PASS - your app password
-* GH_PAT - your github PAT
-* GH_BASE_URL - using "https://api.github.com/repos/mbcovarrubias/face-recognition/contents/"
-
-Placeholder .env file code (replace "placeholder" with your desired settings):
+.env file code template (replace "placeholder" with your desired settings):
 ```
 # server
-PORT = "placeholder"
+PORT = 3000
 
 # sql connection
-DB_HOST = "placeholder"
-DB_NAME = "placeholder"
-DB_USER = "placeholder"
-DB_PASSWORD = "placeholder"
-CONNECTION_LIMIT = "placeholder"
+DB_HOST = "localhost"
+DB_NAME = "face-recognition"
+DB_USER = "root"
+DB_PASSWORD = ""
+CONNECTION_LIMIT = 40
 
 # nodemailer transporter
-AUTH_USER = "placeholder"
-AUTH_PASS = "placeholder"
+AUTH_USER = "placeholder" #email
+AUTH_PASS = "placeholder" #app password
 
 # github api for updating facial recognition system application
-GH_PAT = "placeholder"
-GH_BASE_URL = "placeholder"
-
+GH_PAT = "placeholder" #github PAT
+GH_BASE_URL = "https://api.github.com/repos/mbcovarrubias/face-recognition/contents/"
 ```
