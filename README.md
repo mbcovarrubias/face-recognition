@@ -1,7 +1,10 @@
 # face-recognition
-WIP, some features may not work yet
+Currently WIP, some features may not work yet.
 
-
+Purpose of creation of this repository is for the following reasons:
+* Compliance for research subjects
+* Installing and testing the application from different devices
+  
 ## Libraries used
 * face-api.js by justadudewhohacks https://github.com/justadudewhohacks/face-api.js
 * p5.js
