@@ -8,17 +8,28 @@ WIP, some features may not work yet
 ## Prerequisites
 * Node.js
 * XAMPP
-## How to set up
-1. Download prerequisites
-2. In XAMPP start the MySQL module
-3. Download this repository and extract its zip file anywhere. It is recommended to extract it in your user folder.
-4. Create .env file in the main folder (where public and views folder are located). See "For .env file" below.
-5. Open any command line program (cmd, powershell, etc.) then change directory to the main folder.
-6. Type "npm run hr" (hr is the alias for hard reset) in the shell you are using. this will ensure that the system works properly, especially when handling databases.
-7. To start the application, type "npm run start" or "npm start"
-8. A link that redirects to the facial recognition system will be provided if the command ran successfully 
-9. If there are modules missing, install the missing module by using the "npm install" command, then try starting the application again.
-10. Copy the link provided and paste it to a web browser.
+* Git
+## Installation
+The codes below are meant to be typed in command line programs (cmd, powershell, etc.)
+1. Clone this repository:
+```bash
+git clone https://github.com/mbcovarrubias/face-recognition.git
+```
+2. Change directory:
+```bash
+cd face-recognition
+```
+## Setup
+* Start the MySQL module in the XAMPP control panel
+* Create .env file in the cloned repository. See "For .env file" below for what to put there.
+* Run hard reset command. This will create a new database and delete the old one.
+```bash
+npm run hr
+```
+* Start the server with the command below. A link will be provided that redirects to the application.
+```bash
+npm start
+```
 
 ## For .env file
 These are the keys used in the .env file:
@@ -32,3 +43,25 @@ These are the keys used in the .env file:
 * AUTH_PASS - your app password
 * GH_PAT - your github PAT
 * GH_BASE_URL - using "https://api.github.com/repos/mbcovarrubias/face-recognition/contents/"
+
+Placeholder .env file code (replace "placeholder" with your desired settings):
+```
+# server
+PORT = "placeholder"
+
+# sql connection
+DB_HOST = "placeholder"
+DB_NAME = "placeholder"
+DB_USER = "placeholder"
+DB_PASSWORD = "placeholder"
+CONNECTION_LIMIT = "placeholder"
+
+# nodemailer transporter
+AUTH_USER = "placeholder"
+AUTH_PASS = "placeholder"
+
+# github api for updating facial recognition system application
+GH_PAT = "placeholder"
+GH_BASE_URL = "placeholder"
+
+```
