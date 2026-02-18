@@ -1,13 +1,13 @@
 let mainCanvas = document.getElementById("canvas");
 
 let captureCount = 0;
-let captureDelay = 400; // in milliseconds
+let captureDelay = 200; // in milliseconds
 let lastTick = 0;
-let maxCaptures = 10;
+let maxCaptures = 20;
 let targetVideoWidth = 480;
 let videoWidth = mainCanvas.getBoundingClientRect().width-8;
 
-let detections = [];
+let detection = undefined;
 
 let recording = false;
 let detectionStarted = false;
@@ -32,77 +32,84 @@ function ding() {
 	audio.play();
 }
 
-async function saveFaceData(name,idx) {
+async function addTestImage(name,detection) {
 	try {
-		const response = await fetch("/",{
+		let box = detection.detection.box;
+		//let content = video.get(box.x,box.y,box.width,box.height).canvas.toDataURL("image/jpeg");
+		let content = canvas.canvas.toDataURL("image/jpeg");
+		let response = await fetch("/",{
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				action: "capture",
-				message: {fileName: `${name}_${idx}`,content: canvas.canvas.toDataURL("image/jpeg")}
+				action: "add test image",
+				message: {name,content}
 			})
 		});
 		
-		const result = await response.json();
+		let result = await response.json();
 		console.log('Server response:', result);
 	} catch (err) {
 		console.log(err);
 	}
 }
 
-async function detectFaces() {
+async function saveCapture(name,detection,idx) {
+	try {
+		let box = detection.detection.box;
+		//let content = video.get(box.x,box.y,box.width,box.height).canvas.toDataURL("image/jpeg");
+		let content = canvas.canvas.toDataURL("image/jpeg");
+		let response = await fetch("/",{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				action: "capture",
+				message: {fileName: `${name}_${idx}`,content}
+			})
+		});
+		
+		let result = await response.json();
+		console.log('Server response:', result);
+	} catch (err) {
+		console.log(err);
+	}
+}
+
+async function detectFace() {
 	detectionInterval = setInterval(async () => {
 		if (video.elt.readyState === 4) {
-			const fullFaceDescriptions = await faceapi.detectAllFaces(video.elt,detectionOptions)
-				.withFaceLandmarks()
-				.withFaceExpressions();
-			const displaySize = { width: videoWidth, height: videoWidth / aspectRatio };
-            detections = faceapi.resizeResults(fullFaceDescriptions, displaySize);
+			try {
+				let faceDescription = await faceapi.detectSingleFace(video.elt,detectionOptions).withFaceLandmarks();
+				let displaySize = { width: videoWidth, height: videoWidth / aspectRatio };
+				detection = faceapi.resizeResults(faceDescription, displaySize);
+			} catch {
+				detection = undefined;
+			}
 		}
 	}, captureDelay);
 }
 
 function preload() {
-	const modelsPath = "./models/face-api";
+	let modelsPath = "./models/face-api";
 	
 	Promise.all([
 		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
 		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
 		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
 		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-	]).then(()=>{
-		addToLogs("Loaded models",false);
-	});
-		
-	// if (isUsingTouchscreen()) {
-		// detectionOptions = new faceapi.SsdMobilenetv1Options({minConfidence:.5});
-		// Promise.all([
-			// faceapi.nets.ssdMobilenetv1.loadFromUri(modelsPath),
-			// faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			// faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			// faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		// ]);
-	// } else {
-		// Promise.all([
-			// faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-			// faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-			// faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-			// faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-		// ]);
-	// }
-		
-	// console.log("loaded models");
+	]).then(()=>{});
 	
 	document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
-	document.getElementById("face").innerHTML = `Detecting face: ${detections.length>0?"yes":"no"}`;
+	document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
 	document.getElementById("capture").addEventListener("click",async () => {
 		document.getElementById("capture").innerHTML = "Restart Capturing";
 		if (!recording) captureCount = 0;
 		if (!detectionStarted) {
 			detectionStarted = true;
-			detectFaces();
+			detectFace();
 		}
 		
 		recording = !recording;
@@ -158,40 +165,41 @@ function draw() {
 		resizeCanvas(videoWidth,videoWidth/aspectRatio);
 		video.size(width,height);
 		
-		document.getElementById("face").innerHTML = `Detecting face: ${detections.length>0?"yes":"no"}`;
-
 		image(video,0,0);
 		
+		document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
+		
 		if (recording) {
-			if (Date.now()-lastTick >= captureDelay && captureCount < maxCaptures) {
-				if (detections.length > 0) {
-					if (captureCount+1>=maxCaptures) {
+			if (detection) {
+				if (Date.now()-lastTick >= captureDelay && captureCount <= maxCaptures) {
+					if (captureCount>=maxCaptures) {
 						recording = false;
 						detectionStarted = false;
 						document.getElementById("next").disabled = false;
 						clearInterval(detectionInterval);
-						detections = [];
+						detection = undefined;
+						return;
 					}
 					
-					saveFaceData(document.getElementById("name").value,captureCount);
+					let name = document.getElementById("name").value;
+					saveCapture(name,detection,captureCount);
+					if (captureCount == 0) addTestImage(name,detection);
+					
 					captureCount += 1;
 					ding();
 					
 					document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
+					
+					lastTick = Date.now();
 				}
 				
-				lastTick = Date.now();
+				let box = detection.detection.box;
+					
+				strokeWeight(2);
+				stroke(0,0,255);
+				noFill();
+				rect(box.x,box.y,box.width,box.height);
 			}
-		}
-		
-		for (let i = 0; i < detections.length; i++) {
-			let face = detections[i];
-			let box = face.detection.box;
-			
-			strokeWeight(2);
-			stroke(0,0,255);
-			noFill();
-			rect(box.x,box.y,box.width,box.height);
 		}
 	}
 }
