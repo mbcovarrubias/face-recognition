@@ -8,6 +8,7 @@ Purpose of creation of this repository is for the following reasons:
 ## Libraries used
 * face-api.js by justadudewhohacks https://github.com/justadudewhohacks/face-api.js
 * p5.js
+* ml5.js
 ## Prerequisites
 * Node.js
 * XAMPP
