@@ -3,12 +3,14 @@
   <head>
 	<link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verifcation</title>
+    <title>Verification</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.9/p5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+	<script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
   </head>
   <body>
 	<div class="box verification-box">
+		<h3 class="center">Verification</h3>
 		<div class="gridbox">
 			<div class="box" id="canvas">
 				<div class="center">
@@ -18,11 +20,17 @@
 				</div>
 			</div>
 			<div class="box">
+				<h4 class="center">Instructions</h4>
+				<ul>
+					<li>Do the following expressions in order when face detected:</li>
+					<ol id="expressionList"></ol>
+				</ul>
+				<hr/>
 				<h4 class="center">Notes</h4>
-				<ol>
+				<ul>
 					<li>If you feel something is not working right, check the console of your browser (Ctrl+Shift+J), then reload (Ctrl+R).</li>
 					<li>"Loaded FaceMatcher" indicates that everything was loaded successfully. If you do not see the "Loaded FaceMatcher" in the logs, try reloading and wait for it. If it does not work, try again.</li>
-				</ol>
+				</ul>
 				<button class="button" type="button" onclick="openCurrentRecord()">View Current Record</button>
 			</div>
 			<div class="box">

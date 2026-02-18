@@ -15,17 +15,14 @@
 				<div class="box">
 					<button class="home-page-button" onclick="f('/qr',670,400)">QR Codes</button>
 					<button class="home-page-button" onclick="f('/registration',400,318)">Register</button>
-					<button class="home-page-button" onclick="f('/verification',700,450)">Verify Identity</button>
+					<button class="home-page-button" onclick="f('/verification',1036,490)">Verify Identity</button>
 					<button class="home-page-button" onclick="f('/archive',400,416)">Archive</button>
+					<button class="home-page-button" onclick="f('/test',700,500)">Submit Test Images</button>
 				</div>
 				<div class="box statistics">
 					<div>
 						<p id="user-count">-</p>
 						<p>User/s registered</p>
-					</div>
-					<div>
-						<p id="accuracy">-</p>
-						<p>Average facial recognition accuracy</p>
 					</div>
 				</div>
 			</div>
@@ -59,14 +56,14 @@
 				.then(registeredUsers=>document.getElementById("user-count").innerHTML = registeredUsers.length)
 				.catch(()=>document.getElementById("user-count").innerHTML = "Error");
 				
-				fetch("/",{
-					method: "POST",
-					headers: {"Content-Type": "application/json"},
-					body: JSON.stringify({action: "get average accuracy"})
-				})
-				.then(res=>res.json())
-				.then(msg=>document.getElementById("accuracy").innerHTML = msg.accuracy)
-				.catch(()=>document.getElementById("accuracy").innerHTML = "Error");
+				//fetch("/",{
+				//	method: "POST",
+				//	headers: {"Content-Type": "application/json"},
+				//	body: JSON.stringify({action: "get average accuracy"})
+				//})
+				//.then(res=>res.json())
+				//.then(msg=>document.getElementById("accuracy").innerHTML = msg.accuracy)
+				//.catch(()=>document.getElementById("accuracy").innerHTML = "Error");
 			}
 			
 			update();
