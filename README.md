@@ -34,6 +34,10 @@ cd face-recognition
 ## Setup
 * Start the MySQL module in the XAMPP control panel
 * Create .env file in the cloned repository. See "For .env file" below for what to put there.
+* Install dependencies:
+```bash
+npm install
+```
 * Run hard reset command. This will create a new database and delete the old one.
 ```bash
 npm run hr
