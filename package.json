@@ -19,7 +19,8 @@
 		"hr": "npm run hard-reset",
 		"clear-current-record": "node clear-current-record.js",
 		"ccr": "node clear-current-record.js",
-		"users": "node get-users.js"
+		"users": "node get-users.js",
+		"tables": "node show-tables.js"
 	},
 	"author": "",
 	"license": "ISC",
