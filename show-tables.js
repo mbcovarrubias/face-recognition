@@ -15,7 +15,7 @@ let pool = mysql.createPool({
 });
 let query = util.promisify(pool.query).bind(pool);
 
-query(`SELECT * FROM RegisteredUsers`)
+query(`SHOW TABLES`)
 .then(data=>{
 	console.log(data);
 	pool.end();

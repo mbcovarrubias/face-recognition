@@ -1,11 +1,21 @@
+// import {createRequire} from "module";
+// import {dirname} from 'node:path';
+// import {fileURLToPath} from 'node:url';
+
+// let require = createRequire(import.meta.url);
+// let __filename = fileURLToPath(import.meta.url);
+// let __dirname = dirname(__filename);
+
 let express = require("express");
 let bodyParser = require("body-parser");
 let path = require("path");
 let fs = require("fs");
-let mysql = require('mysql');
-let nodemailer = require('nodemailer');
+let mysql = require("mysql");
+let nodemailer = require("nodemailer");
 let util = require("util");
 let qrcode = require("qrcode");
+
+//import FaceDetectionEngine, { LivenessAction } from '@sssxyd/face-liveness-detector'
 
 require("dotenv").config();
 
@@ -17,6 +27,7 @@ let pool = mysql.createPool({
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME
 });
+
 let qrCodeOptions = {width: 300, margin: 2};
 
 let query = util.promisify(pool.query).bind(pool);
@@ -40,40 +51,72 @@ app.post("/", async (req,res) => {
 			case "check username":
 				let alreadyExists = false;
 				let users = await query(`SELECT * FROM RegisteredUsers`);
-				users = users.map((user)=>user.name.toLowerCase());
+				users = users.map(user=>user.name.toLowerCase());
 				if (users.indexOf(message.toLowerCase()) != -1) alreadyExists = true;
 				
 				res.send({alreadyExists: alreadyExists});
 				
 				break;
-			case "capture":
-				const fileName = message.fileName;
-				const content = message.content;
+			case "add test image": {
+				let name = message.name;
+				let content = message.content;
 				
-				const base64Data = content.split(";base64,").pop();
-				const b = Buffer.from(base64Data,"base64");
-				const p = path.join(__dirname,"public","images",fileName+".jpg");
+				let b64 = content.split(";base64,").pop();
+				let buffer = Buffer.from(b64,"base64");
+				let imgPath = path.join(__dirname,"public","test_images",name+".jpg");
+				let jsonPath = path.join(__dirname,"public","test_images.json");
 				
-				fs.writeFile(p,b,(err) => {
+				fs.writeFile(imgPath,buffer,err=>{
+					if (err) res.json({ status: 'failed', message: err });
+					else res.json({ status: 'success', message: 'Successfully created file' });
+				});
+				
+				// update JSON
+				fs.readFile(jsonPath,"utf8",(err,data)=>{
 					if (err) {
-						res.json({ status: 'failed', message: err });
-					} else {
-						res.json({ status: 'success', message: 'Successfully created file' });
+						console.error(err);
+						return;
+					}
+					
+					try {
+						let jsonData = JSON.parse(data);
+						let actualName = name;
+						let url = path.join(__dirname,"public","test_images.json");
+						
+						jsonData.push({actualName,url});
+						
+						fs.writeFile(jsonPath,JSON.stringify(jsonData,null,4),"utf8",err=>{
+							if (err) throw err
+						});
+					} catch(err) {
+						console.error(err);
 					}
 				});
+				
 				break;
-			case "reset captures":
+			} case "capture": {
+				let fileName = message.fileName;
+				let content = message.content;
+				
+				let b64 = content.split(";base64,").pop();
+				let buffer = Buffer.from(b64,"base64");
+				let imgPath = path.join(__dirname,"public","images",fileName+".jpg");
+				
+				fs.writeFile(imgPath,buffer,err=>{
+					if (err) res.json({ status: 'failed', message: err });
+					else res.json({ status: 'success', message: 'Successfully created file' });
+				});
+				break;
+			} case "reset captures":
 				if (!message.nextClicked) {
 					for (let i = 0; i < message.captureCount; i++) {
 						let imgPath = path.join(__dirname,"public","images",`${message.user}_${i}.jpg`);
-						if (fs.existsSync(imgPath)) {
-							fs.rmSync(imgPath);
-						}
+						if (fs.existsSync(imgPath)) fs.rmSync(imgPath);
 					}
 				}
 				break;
 			case "camera":
-				res.render("camera",{ name: name, email: req.body.email });
+				res.render("camera",{ name, email: req.body.email });
 				break;
 			case "regfinish":
 				await query(`INSERT INTO RegisteredUsers (name,email) VALUES (?,?)`,[name,email]);
@@ -97,7 +140,17 @@ app.post("/", async (req,res) => {
 					res.send({"accuracy":"N/A"});
 				}
 				break;
-			case "face recognized":
+			case "user exists in record": {
+				try {
+					let record = await query(`SELECT * FROM \`${message.date}\``);
+					record = record.map(row=>row.name.toLowerCase());
+					res.send({exists: record.indexOf(message.name.toLowerCase()) != -1});
+				} catch {
+					res.send({exists: false});
+				}
+				
+				break;
+			} case "face recognized":
 				if (!message.date.match(/^\d{4}-\d{2}-\d{2}$/)) return; // prevent sql injection
 			
 				await query(`CREATE TABLE IF NOT EXISTS \`${message.date}\` (name VARCHAR(255) UNIQUE, time TEXT)`);
@@ -114,7 +167,7 @@ app.post("/", async (req,res) => {
 					let email = userData[0].email;
 					console.log("Got user email, verifying transporter...");
 					
-					res.send({message: `Added '${message.name}' to current record`,printToLogs: true});
+					res.send({created: true, message: `Added '${message.name}' to current record`,printToLogs: true});
 					
 					transporter.verify((err, success) => {
 						if (err) throw err;
@@ -142,9 +195,8 @@ app.post("/", async (req,res) => {
 							}
 						});
 					});
-					
 				} else {
-					res.send({printToLogs: false});
+					res.send({created: false, printToLogs: false});
 				}
 				
 				break;
@@ -158,7 +210,7 @@ app.post("/", async (req,res) => {
 })
 
 app.post("/submit1", (req,res) => {
-	const formData = req.body
+	let formData = req.body
 	res.render("camera",{ formData });
 })
 
@@ -207,20 +259,32 @@ app.get("/record",async(req,res)=>{
 	}
 	res.render("record",renderData);
 })
-app.get("/archive",async(req,res)=>{
+
+app.get("/archive",async (req,res)=>{
+	let dates = [];
 	try {
 		let archive = await query(`SELECT * FROM Archive`);
-		archive = archive.map(async(row)=>{
-			let recordData = await query(`SELECT * FROM \`${row.date}\``);
-			return {date: row.date, present: recordData.length};
-		});
-		archive = await Promise.all(archive);
-		archive = JSON.stringify(archive);
-		
-		res.render("archive",{dates: archive, err: false});
-	} catch {
-		res.render("archive",{dates: JSON.stringify([]), err: true});
+		for (let i = 0; i < archive.length; i++) {
+			let date = archive[i].date;
+			let recordData;
+			try {
+				recordData = await query(`SELECT * FROM \`${date}\``);
+				recordData = recordData.length;
+			} catch (err) {
+				recordData = "Error";
+			} finally {
+				dates.push({date, present: recordData});
+			}
+		}
+	} catch (err) {
+		console.error(err);
 	}
+	
+	res.render("archive",{dates:JSON.stringify(dates)});
+})
+
+app.get("/test",(req,res)=>{
+	res.render("test");
 })
 
 app.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));

@@ -1,3 +1,6 @@
+// import {createRequire} from "module";
+// let require = createRequire(import.meta.url);
+
 let mysql = require('mysql');
 let path = require('path');
 let fs = require('fs');
@@ -24,6 +27,9 @@ let formattedDate = `${year}-${month}-${day}`;
 
 query(`DROP TABLE IF EXISTS \`${formattedDate}\``)
 .then(()=>{
-	console.log("Cleared current record");
-	pool.end();
+	query(`DELETE FROM Archive WHERE date=\`${formattedDate}\``)
+	.then(()=>{
+		console.log("Cleared current record");
+		pool.end();
+	});
 });

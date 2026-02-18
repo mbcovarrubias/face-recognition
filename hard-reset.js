@@ -1,3 +1,6 @@
+// import {createRequire} from "module";
+// let require = createRequire(import.meta.url);
+
 let mysql = require('mysql');
 let path = require('path');
 let fs = require('fs');
@@ -18,6 +21,11 @@ let folderPath = path.join(__dirname,"public","images")
 fs.rmSync(folderPath, {recursive: true, force: true});
 fs.mkdirSync(folderPath);
 console.log("Cleared images folder");
+
+folderPath = path.join(__dirname,"public","test_images")
+fs.rmSync(folderPath, {recursive: true, force: true});
+fs.mkdirSync(folderPath);
+console.log("Cleared test images folder");
 
 query("DROP DATABASE IF EXISTS `face-recognition`");
 query("CREATE DATABASE `face-recognition`");
