@@ -64,8 +64,4 @@ CONNECTION_LIMIT = 40
 # nodemailer transporter
 AUTH_USER = "placeholder" #email
 AUTH_PASS = "placeholder" #app password
-
-# github api for updating facial recognition system application
-GH_PAT = "placeholder" #github PAT
-GH_BASE_URL = "https://api.github.com/repos/mbcovarrubias/face-recognition/contents/"
 ```
