@@ -1,27 +1,39 @@
 let mainCanvas = document.getElementById("canvas");
 let logs = document.getElementById("logs");
 
+let maxBlinkThreshold = .2;
 let maxExprCount = 2;
 let maxCaptures = 20;
-let maxIrisCLength = 100;
-let targetVideoWidth = 480;
 let maxRecognitionThreshold = .6;
-let maxBlinkThreshold = .2;
+let targetVideoWidth = 480;
 let videoWidth = mainCanvas.getBoundingClientRect().width-8;
+
+// blink
+let minBlinkFrames = 1;
+let maxBlinkFrames = 5;
+
+// loading
+let loadingText = "Loading...";
+let loadingTextDotCount = 1;
+let doneLoading = false;
 
 let aspectRatio;
 let canvas;
 let video;
-let detectionInterval;
 let faceMatcher;
 let randomExpressions;
 let faceMesh;
 
+let detectionInterval;
+let loadingTextInterval;
+
 let detections = [];
 let faceMeshResults = [];
 
+let faceStates = {};
 let lastTick = {};
 let exprCount = {};
+
 let faceMeshOptions = {
 	maxFaces: 5,
 	refineLandmarks: true,
@@ -75,6 +87,11 @@ async function updateDetections() {
 	}
 }
 
+async function updateLoadingText(Text) {
+	loadingTextDotCount = (loadingTextDotCount + 1) % 4;
+	loadingText = Text + ".".repeat(loadingTextDotCount);
+}
+
 function addToLogs(text,error) {
 	let textElt = document.createElement("span");
 	textElt.innerHTML = text;
@@ -100,10 +117,7 @@ function ding() {
 }
 
 function faceRecognized(detectionData) {
-	console.log(width/video.width);
-	
 	let box = detectionData.detection.detection.box;
-	
 	let match = detectionData.bestMatch;
 	let name = match.label;
 	
@@ -147,6 +161,30 @@ function faceRecognized(detectionData) {
 		);
 	});
 	
+	let faceState;
+	
+	if (!faceStates.hasOwnProperty(name)) {
+		faceStates[name] = {
+			blink: false,
+			blinkStart: 0,
+			blinkEnd: 0
+		}
+	}
+	
+	faceStates[name].lastSeen = now.getTime();
+	
+	faceState = faceStates[name];
+	
+	let requestOptions = {
+		method: "POST",
+		headers: {"Content-Type": "application/json"},
+		body: JSON.stringify({
+			action: "face recognized",
+			message: {"name": name,"date": fmtDate,"time": fmtTime,"accuracy": accuracyPercent,"unknown": name == "unknown"}
+		})
+	}
+
+	
 	if (linkedMesh) {
 		let keypoints = linkedMesh.keypoints;
 		let FMBox = linkedMesh.box;
@@ -173,38 +211,32 @@ function faceRecognized(detectionData) {
 		
 		let avgEAR = (leftEAR+rightEAR)/2
 		
-		if (avgEAR <= maxBlinkThreshold) {
-			stroke(0,255,0);
-			ding();
-			
-			fetch("/",{
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify({
-					action: "face recognized",
-					message: {"name": name,"date": fmtDate,"time": fmtTime,"accuracy": accuracyPercent,"unknown": name == "unknown"}
-				})
-			})
-			.then(response=>response.json())
-			.then(result=>{
-				if (result.printToLogs) addToLogs(result.message,false);
-			});
+		if (avgEAR <= maxBlinkThreshold && !faceState.blink) {
+			faceState.blink = true;
+			faceState.blinkStart = frameCount;
 		} else {
-			stroke(255,0,0);
+			if (avgEAR > maxBlinkThreshold && faceState.blink) {
+				stroke(255,0,0);
+				faceState.blink = false;
+				faceState.blinkEnd = frameCount;
+				
+				let frameDiff = faceState.blinkEnd - faceState.blinkStart;
+				if (frameDiff >= minBlinkFrames && frameDiff <= maxBlinkFrames) {
+					stroke(0,255,0);
+					ding();
+					
+					fetch("/",requestOptions.FaceRecognized).then(res=>res.json())
+					.then(res=>{if (res.printToLogs) addToLogs(res.message,false)});
+				}
+			} else {
+				stroke(255,0,0);
+			}
+			
 		}
 		
 		//noStroke();
 		noFill();
-		//console.log(face);
 		rect(FMBox.xMin * scaleX,FMBox.yMin * scaleY,FMBox.width * scaleX,FMBox.height * scaleY);
-		
-		// for (let k of leftEye) {
-			// point(k.x * scaleX, k.y * scaleY)
-		// }
-		
-		// for (let k of rightEye) {
-			// point(k.x * scaleX, k.y * scaleY)
-		// }
 	}
 }
 
@@ -221,48 +253,85 @@ function isPointInBox(point, box) {
 function videoReady() {
 	let stream = video.elt.srcObject;
 	let track = stream.getVideoTracks()[0].getSettings();
-	let vWidth = track.width;
-	let vHeight = track.height;
+	let vWidth = track.width || video.elt.videoWidth;
+	let vHeight = track.height || video.elt.videoHeight;
 	
 	aspectRatio = vWidth/vHeight;
 	
-	detectionInterval = setInterval(updateDetections,200);
-}
-
-// main p5 functions
-
-function preload() {
+	resizeCanvas(videoWidth,videoWidth/aspectRatio);
+	
+	let loadingTextToSet = "";
+	
+	loadingTextInterval = setInterval(async()=>{
+		updateLoadingText(loadingTextToSet);
+	},500);
+	
+	// load models
 	let modelsPath = "./models/face-api";
-		
-	Promise.all([
+	let promiseList = [
 		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
 		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
 		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
 		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-	]).then(async ()=>{
+	];
+	
+	loadingTextToSet = "Loading models";
+	Promise.all(promiseList).then(()=>{
+		loadingTextToSet = "Loaded models, loading FaceMatcher";
+		
 		addToLogs("Loaded models",false);
 		
-		let labeledImages = await loadLabeledImages();
-		if (labeledImages.length > 0) {
-			faceMatcher = new faceapi.FaceMatcher(labeledImages,maxRecognitionThreshold);
-			addToLogs("Loaded FaceMatcher",false);
-		} else {
-			throw new Error("No labeled images found");
-		}
+		loadLabeledImages()
+		.then(labeledImages=>{
+			if (labeledImages.length > 0) {
+				faceMatcher = new faceapi.FaceMatcher(labeledImages,maxRecognitionThreshold);
+				loadingTextToSet = "Loaded FaceMatcher";
+				addToLogs("Loaded FaceMatcher",false);
+				clearInterval(loadingTextInterval);
+				
+				setTimeout(()=>{
+					doneLoading = true;
+				},500)
+			} else {
+				throw new Error("No labeled images found");
+			}
+		})
+		.catch(err=>{
+			throw err;
+		});
+		
 	}).catch((err)=>{
+		clearInterval(loadingTextInterval);
+		loadingText = "Error: "+err;
 		addToLogs(err,true);
+	}).finally(()=>{	
+		// start updating detections
+		detectionInterval = setInterval(updateDetections,200);
 	});
-	
-	faceMesh = ml5.faceMesh(faceMeshOptions);
 }
+
+function cleanupFaceStates() {
+	if (!faceStates) return;
+	faceStates = Object.fromEntries(
+		Object.entries(faceStates).filter(([key,value])=>Date.now() - value.lastSeen <= 2000)
+	);
+}
+
+// main p5 functions
 
 function setup() {    
 	//videoWidth = mainCanvas.getBoundingClientRect().width-8;
 	videoWidth = targetVideoWidth;
 	
-	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
+	if (!canvas) {
+		canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
+	}
+	
 	video = createCapture(VIDEO,videoReady);
+	video.elt.setAttribute('playsinline', '');
 	video.hide();
+	
+	faceMesh = ml5.faceMesh(faceMeshOptions);
 	
 	if (faceMesh) {
 		faceMesh.detectStart(video, results=>{
@@ -273,17 +342,23 @@ function setup() {
 
 function draw() {
 	if (video && aspectRatio) {
-		clear();
+		//clear();
 
-		videoWidth = Math.max(0,Math.min(mainCanvas.getBoundingClientRect().width-8,targetVideoWidth));
-		videoWidth = targetVideoWidth;
-		resizeCanvas(videoWidth,videoWidth/aspectRatio);
-		
 		image(video,0,0,width,height);
+		
+		if (!doneLoading) {
+			fill(255,255,255);
+			stroke(0);
+			strokeWeight(2);
+			textSize(20);
+			text(loadingText,4,20);
+		}
 
 		if (detections.length > 0 && faceMeshResults.length > 0) {
 			detections.forEach(detection=>faceRecognized(detection));
 		}
+		
+		cleanupFaceStates();
 	}
 }
 

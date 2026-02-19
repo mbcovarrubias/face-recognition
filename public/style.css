@@ -261,7 +261,7 @@ table.archive td a {
 }
 
 /* for mobile compatibility */
-@media only screen and (max-width: 665px) {
+@media only screen and ((max-width: 665px) or (orientation: portrait)){
 	body > div.home-page-box > .gridbox {
 		grid-template-columns: 1fr;
 	}
@@ -280,11 +280,16 @@ table.archive td a {
 		width: initial;
 	}
 	
+	body > div.verification-box > .gridbox > :nth-child(1){
+		grid-row: 1;
+	}
+	
 	body > div.verification-box > .gridbox > :nth-child(2){
 		grid-row: 2;
 	}
 
 	body > div.verification-box > .gridbox > :nth-child(3){
+		grid-column: 1;
 		grid-row: 3;
 	}
 	
