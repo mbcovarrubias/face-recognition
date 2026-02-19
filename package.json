@@ -15,12 +15,11 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "nodemon server.js",
-		"hard-reset": "node hard-reset.js && npm start",
+		"hard-reset": "node hard-reset.cjs && npm start",
 		"hr": "npm run hard-reset",
-		"clear-current-record": "node clear-current-record.js",
-		"ccr": "node clear-current-record.js",
-		"users": "node get-users.js",
-		"tables": "node show-tables.js"
+		"clear-current-record": "node clear-current-record.cjs",
+		"ccr": "npm run clear-current-record",
+		"users": "node get-users.js"
 	},
 	"author": "",
 	"license": "ISC",

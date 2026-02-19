@@ -128,18 +128,6 @@ app.post("/", async (req,res) => {
 				let registeredUsers = await query(`SELECT * FROM RegisteredUsers`);
 				res.send(registeredUsers.map(i=>i.name));
 				break;
-			case "get average accuracy":
-				let accuracyData = await query("SELECT * FROM FaceRecognitionResults");
-				accuracyData = accuracyData.map(row=>row.accuracy);
-				
-				let length = accuracyData.length;
-				if (length > 0) {
-					let averageAccuracy = (accuracyData.reduce((a,b)=>a+b)/length).toFixed(2);
-					res.send({"accuracy":`${averageAccuracy}%`});
-				} else {
-					res.send({"accuracy":"N/A"});
-				}
-				break;
 			case "user exists in record": {
 				try {
 					let record = await query(`SELECT * FROM \`${message.date}\``);
@@ -154,7 +142,6 @@ app.post("/", async (req,res) => {
 				if (!message.date.match(/^\d{4}-\d{2}-\d{2}$/)) return; // prevent sql injection
 			
 				await query(`CREATE TABLE IF NOT EXISTS \`${message.date}\` (name VARCHAR(255) UNIQUE, time TEXT)`);
-				await query(`INSERT INTO FaceRecognitionResults (accuracy) VALUES (?)`,[message.accuracy])
 				
 				let list = await query(`SELECT * FROM \`${message.date}\``);
 				let names = list.map((row)=>row.name);
@@ -205,7 +192,7 @@ app.post("/", async (req,res) => {
 		}
 	} catch (err) {
         console.error("Database Error:", err);
-        res.status(500).send("Internal Server Error");
+        //res.status(500).send("Internal Server Error");
 	}
 })
 
@@ -242,7 +229,7 @@ app.get("/qr",async(req,res) => {
 })
 
 app.get("/record",async(req,res)=>{
-	let q = req.query
+	let q = req.query;
 	let formattedDate = `${q.year}-${q.month}-${q.day}`;
 	
 	let renderData = {
