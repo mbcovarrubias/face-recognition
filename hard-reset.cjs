@@ -14,12 +14,12 @@ require("dotenv").config();
 	});
 	let query = util.promisify(pool.query).bind(pool);
 
-	let folderPath = path.join(__dirname,"public","images")
+	let folderPath = path.join(__dirname,"public","images","faces");
 	fs.rmSync(folderPath, {recursive: true, force: true});
 	fs.mkdirSync(folderPath);
-	console.log("Cleared images folder");
+	console.log("Cleared faces folder");
 
-	folderPath = path.join(__dirname,"public","test_images")
+	folderPath = path.join(__dirname,"public","test_images");
 	fs.rmSync(folderPath, {recursive: true, force: true});
 	fs.mkdirSync(folderPath);
 	console.log("Cleared test images folder");
@@ -28,7 +28,8 @@ require("dotenv").config();
 		await query("DROP DATABASE IF EXISTS `face-recognition`");
 		await query("CREATE DATABASE `face-recognition`");
 		await query("USE `face-recognition`");
-		await query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE, email VARCHAR(255))");
+		//await query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE, email VARCHAR(255))");
+		await query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE)");
 		//query("CREATE TABLE FaceRecognitionResults (accuracy DECIMAL(5,2))");
 		await query("CREATE TABLE Archive (date VARCHAR(255) UNIQUE)");
 		

@@ -14,9 +14,8 @@ let mysql = require("mysql");
 let nodemailer = require("nodemailer");
 let util = require("util");
 let qrcode = require("qrcode");
-
-//import FaceDetectionEngine, { LivenessAction } from '@sssxyd/face-liveness-detector'
-
+let http = require("http");
+let WebSocket = require("ws");
 require("dotenv").config();
 
 let port = process.env.PORT;
@@ -32,7 +31,9 @@ let qrCodeOptions = {width: 300, margin: 2};
 
 let query = util.promisify(pool.query).bind(pool);
 
-let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
+// let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
+
+let saveLoc = "public/images/faces";
 
 let app = express();
 app.set("view engine","ejs");
@@ -40,13 +41,38 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json({limit: '50mb'}));
 
+let server = http.createServer(app);
+let wss = new WebSocket.Server({ server });
+
+function sendMessage() {
+	wss.clients.forEach(client=>{
+		if (client.readyState == WebSocket.OPEN) {
+			client.send("");
+			console.log("Sent message to client");
+		}
+	});
+}
+
+wss.on('connection', ws => {
+	console.log('Client connected');
+
+	ws.on('message', message => {
+		ws.send(`Server received: ${message}`);
+	});
+
+	ws.on('close', () => {
+		console.log('Client disconnected');
+	});
+});
+
 app.post("/", async (req,res) => {
-	let action = req.body.action ?? "";
-	let message = req.body.message ?? {};
-	let name = req.body.name;
-	let email = req.body.email;
-	
+	if (!req.body) return;
 	try {
+		let action = req.body.action ?? "";
+		let message = req.body.message ?? {};
+		let name = req.body.name;
+		//let email = req.body.email;
+	
 		switch (action.toLowerCase()) {
 			case "check username":
 				let alreadyExists = false;
@@ -73,10 +99,7 @@ app.post("/", async (req,res) => {
 				
 				// update JSON
 				fs.readFile(jsonPath,"utf8",(err,data)=>{
-					if (err) {
-						console.error(err);
-						return;
-					}
+					if (err) throw err;
 					
 					try {
 						let jsonData = JSON.parse(data);
@@ -100,7 +123,7 @@ app.post("/", async (req,res) => {
 				
 				let b64 = content.split(";base64,").pop();
 				let buffer = Buffer.from(b64,"base64");
-				let imgPath = path.join(__dirname,"public","images",fileName+".jpg");
+				let imgPath = path.join(__dirname,saveLoc,fileName+".jpg");
 				
 				fs.writeFile(imgPath,buffer,err=>{
 					if (err) res.json({ status: 'failed', message: err });
@@ -109,20 +132,16 @@ app.post("/", async (req,res) => {
 				break;
 			} case "reset captures":
 				if (!message.nextClicked) {
+					let count = 0;
 					for (let i = 0; i < message.captureCount; i++) {
-						let imgPath = path.join(__dirname,"public","images",`${message.user}_${i}.jpg`);
-						if (fs.existsSync(imgPath)) fs.rmSync(imgPath);
+						let imgPath = path.join(__dirname,saveLoc,`${message.user}_${i}.jpg`);
+						if (fs.existsSync(imgPath)) {
+							fs.rmSync(imgPath);
+							count++;
+						}
 					}
+					console.log(`Successfully removed ${count} images of registering user: ${message.user}`);
 				}
-				break;
-			case "camera":
-				res.render("camera",{ name, email: req.body.email });
-				break;
-			case "regfinish":
-				await query(`INSERT INTO RegisteredUsers (name,email) VALUES (?,?)`,[name,email]);
-				console.log("Successfully registered user "+name);
-				
-				res.render("regfinish",{ message });
 				break;
 			case "get registered users":
 				let registeredUsers = await query(`SELECT * FROM RegisteredUsers`);
@@ -149,67 +168,84 @@ app.post("/", async (req,res) => {
 					await query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`,[message.name, message.time]);
 					await query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`,[message.date]);
 					
-					let userData = await query(`SELECT * FROM RegisteredUsers WHERE name = ?`,[message.name]);
+					// let userData = await query(`SELECT * FROM RegisteredUsers WHERE name = ?`,[message.name]);
 
-					let email = userData[0].email;
-					console.log("Got user email, verifying transporter...");
+					// let email = userData[0].email;
+					// console.log("Got user email, verifying transporter...");
 					
 					res.send({created: true, message: `Added '${message.name}' to current record`,printToLogs: true});
 					
-					transporter.verify((err, success) => {
-						if (err) throw err;
+					sendMessage();
+					
+					// transporter.verify((err, success) => {
+						// if (err) throw err;
 						
-						console.log("Successfully verified transporter, sending mail...");
+						// console.log("Successfully verified transporter, sending mail...");
 						
-						let emailMessage = `
-							Your child/ward '${message.name}' attended their class on time.<br/>
-							<br/>
-							This automated message was sent by the Facial Recognition System application.
-						`
-						let mailOptions = {
-							from: `"Facial Recognition System" <${process.env.AUTH_USER}>`, // logged in account to facial recognition system
-							to: email, // parent or guardian of verified user's email
-							subject: "Attendance for "+message.date,
-							text: emailMessage,
-							html: emailMessage
-						};
+						// let emailMessage = `
+							// Your child/ward '${message.name}' attended their class on time.<br/>
+							// <br/>
+							// This automated message was sent by the Facial Recognition System application.
+						// `
+						// let mailOptions = {
+							// from: `"Facial Recognition System" <${process.env.AUTH_USER}>`, // logged in account to facial recognition system
+							// to: email, // parent or guardian of verified user's email
+							// subject: "Attendance for "+message.date,
+							// text: emailMessage,
+							// html: emailMessage
+						// };
 
-						transporter.sendMail(mailOptions, (error, info) => {
-							if (error) {
-								console.error("Error sending email: ", error);
-							} else {
-								console.log("Email sent: " + info.response);
-							}
-						});
-					});
+						// transporter.sendMail(mailOptions, (error, info) => {
+							// if (error) {
+								// console.error("Error sending email: ", error);
+							// } else {
+								// console.log("Email sent: " + info.response);
+							// }
+						// });
+					// });
 				} else {
 					res.send({created: false, printToLogs: false});
 				}
 				
 				break;
-			default:
-				break;
 		}
 	} catch (err) {
-        console.error("Database Error:", err);
+        console.error("Internal Server Error:", err);
         //res.status(500).send("Internal Server Error");
 	}
 })
 
-app.post("/submit1", (req,res) => {
-	let formData = req.body
-	res.render("camera",{ formData });
-})
-
-app.get("/registration", (req,res) => {
+app.get("/registration",(req,res)=>{
 	res.render("registration");
 })
 
-app.get("/verification", (req,res) => {
+app.post("/registration",(req,res)=>{
+	if (!req.body.action) return;
+	let name = req.body.name;
+	let action = req.body.action.toLowerCase();
+	
+	if (action == "camera") {
+		res.render("registration2",{name});
+	} else if (action == "regfinish") {
+		query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
+		.then(()=>{
+			console.log("Successfully registered user: "+name);
+			res.render("regfinish",{success: true, message: "Registration successful"});
+			
+			sendMessage();
+		})
+		.catch(err=>{
+			console.log("An error occured when registering user: "+name);
+			res.render("regfinish",{success: false, message: "Registration failed"});
+		});
+	}
+})
+
+app.get("/verification",(req,res)=>{
 	res.render("verification");
 })
 
-app.get("/home",(req,res) => {
+app.get("/home",(req,res)=>{
 	res.render("home",require("./package.json"));
 })
 
@@ -274,4 +310,4 @@ app.get("/test",(req,res)=>{
 	res.render("test");
 })
 
-app.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
+server.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
