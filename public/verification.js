@@ -5,8 +5,7 @@ let maxBlinkThreshold = .2;
 let maxExprCount = 2;
 let maxCaptures = 20;
 let maxRecognitionThreshold = .6;
-let targetVideoWidth = 480;
-let videoWidth = mainCanvas.getBoundingClientRect().width-8;
+let vw = 480;
 
 // blink
 let minBlinkFrames = 1;
@@ -60,7 +59,8 @@ async function loadLabeledImages() {
 		let descriptors = [];
 		for (let i = 0; i < maxCaptures; i++) {
 			try {
-				let img = await faceapi.fetchImage(`/images/${label}_${i}.jpg`);
+				let saveLoc = "images/faces";
+				let img = await faceapi.fetchImage(`/${saveLoc}/${label}_${i}.jpg`);
 				let faceDescription = await faceapi.detectSingleFace(img,detectionOptions).withFaceLandmarks().withFaceDescriptor();
 				if (faceDescription) descriptors.push(faceDescription.descriptor);
 			} catch (err) {
@@ -132,8 +132,8 @@ function faceRecognized(detectionData) {
 	let minutes = pad(now.getMinutes());
 	let seconds = pad(now.getSeconds());
 	
-	let fmtDate = `${year}-${month}-${day}`;
-	let fmtTime = `${hours}:${minutes}:${seconds}`;
+	let date = `${year}-${month}-${day}`;
+	let time = `${hours}:${minutes}:${seconds}`;
 	
 	stroke(0,0,255);
 	strokeWeight(2);
@@ -145,8 +145,6 @@ function faceRecognized(detectionData) {
 	strokeWeight(2);
 	textSize(16);
 	text(`Name: ${name}`,box.x,box.y-10);
-				
-	let accuracyPercent = Math.round((1-match.distance)*100**2)/100
 	
 	let scaleX = width / video.width;
 	let scaleY = height / video.height;
@@ -180,7 +178,7 @@ function faceRecognized(detectionData) {
 		headers: {"Content-Type": "application/json"},
 		body: JSON.stringify({
 			action: "face recognized",
-			message: {"name": name,"date": fmtDate,"time": fmtTime,"accuracy": accuracyPercent,"unknown": name == "unknown"}
+			message: {name,date,time,"unknown": name == "unknown"}
 		})
 	}
 
@@ -215,8 +213,8 @@ function faceRecognized(detectionData) {
 			faceState.blink = true;
 			faceState.blinkStart = frameCount;
 		} else {
+			stroke(255,0,0);
 			if (avgEAR > maxBlinkThreshold && faceState.blink) {
-				stroke(255,0,0);
 				faceState.blink = false;
 				faceState.blinkEnd = frameCount;
 				
@@ -225,16 +223,12 @@ function faceRecognized(detectionData) {
 					stroke(0,255,0);
 					ding();
 					
-					fetch("/",requestOptions.FaceRecognized).then(res=>res.json())
+					fetch("/",requestOptions).then(res=>res.json())
 					.then(res=>{if (res.printToLogs) addToLogs(res.message,false)});
 				}
-			} else {
-				stroke(255,0,0);
 			}
-			
 		}
 		
-		//noStroke();
 		noFill();
 		rect(FMBox.xMin * scaleX,FMBox.yMin * scaleY,FMBox.width * scaleX,FMBox.height * scaleY);
 	}
@@ -258,7 +252,7 @@ function videoReady() {
 	
 	aspectRatio = vWidth/vHeight;
 	
-	resizeCanvas(videoWidth,videoWidth/aspectRatio);
+	resizeCanvas(vw,vw/aspectRatio);
 	
 	let loadingTextToSet = "";
 	
@@ -320,11 +314,8 @@ function cleanupFaceStates() {
 // main p5 functions
 
 function setup() {    
-	//videoWidth = mainCanvas.getBoundingClientRect().width-8;
-	videoWidth = targetVideoWidth;
-	
 	if (!canvas) {
-		canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
+		canvas = createCanvas(vw,vw/aspectRatio);
 	}
 	
 	video = createCapture(VIDEO,videoReady);
@@ -342,8 +333,6 @@ function setup() {
 
 function draw() {
 	if (video && aspectRatio) {
-		//clear();
-
 		image(video,0,0,width,height);
 		
 		if (!doneLoading) {

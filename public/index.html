@@ -2,8 +2,14 @@
 <html>
 	<head>
 		<link rel="stylesheet" href="style.css">
+		<script src="resize-window.js"></script>
 	</head>
 	<body>
-		<script>window.location.href="/home"</script>
+		<p>To reopen popup, please <a href="javascript:window.location.reload()">reload</a>.</p>
+		<script>
+			window.addEventListener('load',()=>{
+				resizeWindow("/home");
+			});
+		</script>
 	</body>
 </html>

@@ -4,12 +4,11 @@ let captureCount = 0;
 let captureDelay = 200; // in milliseconds
 let lastTick = 0;
 let maxCaptures = 20;
-let targetVideoWidth = 480;
-let videoWidth = mainCanvas.getBoundingClientRect().width-8;
+let vw = 480;
 
 let detection = undefined;
 
-let recording = false;
+let recording = true;
 let detectionStarted = false;
 let nextClicked = false;
 
@@ -30,6 +29,15 @@ function isUsingTouchscreen() {
 function ding() {
 	let audio = new Audio("ding.mp3");
 	audio.play();
+}
+
+function startCapturing() {
+	captureCount = 0;
+	if (!detectionStarted) {
+		recording = true;
+		detectionStarted = true;
+		detectFace();
+	}
 }
 
 async function addTestImage(name,detection) {
@@ -62,9 +70,7 @@ async function saveCapture(name,detection,idx) {
 		let content = canvas.canvas.toDataURL("image/jpeg");
 		let response = await fetch("/",{
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
+			headers: {"Content-Type": "application/json"},
 			body: JSON.stringify({
 				action: "capture",
 				message: {fileName: `${name}_${idx}`,content}
@@ -83,7 +89,7 @@ async function detectFace() {
 		if (video.elt.readyState === 4) {
 			try {
 				let faceDescription = await faceapi.detectSingleFace(video.elt,detectionOptions).withFaceLandmarks();
-				let displaySize = { width: videoWidth, height: videoWidth / aspectRatio };
+				let displaySize = { width: vw, height: vw / aspectRatio };
 				detection = faceapi.resizeResults(faceDescription, displaySize);
 			} catch {
 				detection = undefined;
@@ -93,59 +99,51 @@ async function detectFace() {
 }
 
 function preload() {
-	let modelsPath = "./models/face-api";
-	
-	Promise.all([
-		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-	]).then(()=>{});
-	
 	document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
 	document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
-	document.getElementById("capture").addEventListener("click",async () => {
-		document.getElementById("capture").innerHTML = "Restart Capturing";
-		if (!recording) captureCount = 0;
-		if (!detectionStarted) {
-			detectionStarted = true;
-			detectFace();
-		}
-		
-		recording = !recording;
-	});
+	document.getElementById("capture").addEventListener("click",startCapturing);
 	document.getElementById("cameraForm").addEventListener("submit",()=>{
 		nextClicked = true;
 	});
 
-	window.addEventListener("unload",evt=>{
-		fetch("/",{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({
-				action: "reset captures",
-				message: {
-					user: document.getElementById("name").value,
-					nextClicked: nextClicked,
-					captureCount: maxCaptures
-				}
+	window.addEventListener("visibilitychange",event=>{
+		if (document.visibilityState === "hidden") {
+			// let data = JSON.stringify({
+				// action: "reset captures",
+				// message: {
+					// user: document.getElementById("name").value,
+					// nextClicked,
+					// captureCount: maxCaptures
+				// }
+			// })
+			// navigator.sendBeacon("/",data);
+			fetch("/",{
+				method: "POST",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify({
+					action: "reset captures",
+					message: {
+						user: document.getElementById("name").value,
+						nextClicked: nextClicked,
+						captureCount: maxCaptures
+					}
+				})
 			})
-		})
-		.then(res=>res.json())
-		.then(data=>console.log(data));
+			.then(res=>res.json())
+			.then(data=>console.log(data));
+		}
 	});
 }
 
 function setup() {    
-	videoWidth = mainCanvas.getBoundingClientRect().width-8;
-	
-	canvas = createCanvas(videoWidth,videoWidth/aspectRatio);
+	if (!canvas) {
+		canvas = createCanvas(vw,vw/aspectRatio);
+	}
 	
 	video = createCapture(VIDEO,videoReady);
-	video.size(width,height);
 	video.hide();
+	
+	startCapturing();
 }
 
 function videoReady() {
@@ -155,51 +153,56 @@ function videoReady() {
 	let vHeight = track.height;
 	
 	aspectRatio = vWidth/vHeight;
+	
+	resizeCanvas(vw,vw/aspectRatio);
+	
+	// load models
+	let modelsPath = "./models/face-api";
+	let promiseList = [
+		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
+		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+	];
+	
+	Promise.all(promiseList);
 }
 
 function draw() {
 	if (video && aspectRatio) {
-		clear();
-	
-		videoWidth = Math.max(0,Math.min(mainCanvas.getBoundingClientRect().width-8,targetVideoWidth));
-		resizeCanvas(videoWidth,videoWidth/aspectRatio);
-		video.size(width,height);
+		image(video,0,0,width,height);
 		
-		image(video,0,0);
+		document.getElementById("face").innerHTML = `Detecting face: ${detection?"Yes":"No"}`;
 		
-		document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
-		
-		if (recording) {
-			if (detection) {
-				if (Date.now()-lastTick >= captureDelay && captureCount <= maxCaptures) {
-					if (captureCount>=maxCaptures) {
-						recording = false;
-						detectionStarted = false;
-						document.getElementById("next").disabled = false;
-						clearInterval(detectionInterval);
-						detection = undefined;
-						return;
-					}
-					
-					let name = document.getElementById("name").value;
-					saveCapture(name,detection,captureCount);
-					if (captureCount == 0) addTestImage(name,detection);
-					
-					captureCount += 1;
-					ding();
-					
-					document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
-					
-					lastTick = Date.now();
+		if (recording && detection) {
+			if (Date.now()-lastTick >= captureDelay && captureCount <= maxCaptures) {
+				if (captureCount>=maxCaptures) {
+					recording = false;
+					detectionStarted = false;
+					document.getElementById("next").disabled = false;
+					clearInterval(detectionInterval);
+					detection = undefined;
+					return;
 				}
 				
-				let box = detection.detection.box;
-					
-				strokeWeight(2);
-				stroke(0,0,255);
-				noFill();
-				rect(box.x,box.y,box.width,box.height);
+				let name = document.getElementById("name").value;
+				saveCapture(name,detection,captureCount);
+				if (captureCount == 0) addTestImage(name,detection);
+				
+				captureCount += 1;
+				ding();
+				
+				document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
+				
+				lastTick = Date.now();
 			}
+			
+			let box = detection.detection.box;
+				
+			strokeWeight(2);
+			stroke(0,0,255);
+			noFill();
+			rect(box.x,box.y,box.width,box.height);
 		}
 	}
 }
@@ -207,7 +210,3 @@ function draw() {
 screen.orientation.addEventListener("change",()=>{
 	setTimeout(setup,500);
 });
-
-// window.addEventListener("resize",()=>{
-	// setTimeout(setup,500);
-// });
