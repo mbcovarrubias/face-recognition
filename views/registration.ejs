@@ -4,18 +4,19 @@
 		<title>Registration</title>
 		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 		<link rel="stylesheet" href="style.css">
+		<script src="resize-window.js"></script>
 	</head>
 	<body>
 		<div class="box registration-box1">
 			<h3 class="center">Registration</h3>
-			<form name="registration" action="/" method="post" id="regForm" onsubmit="window.resizeTo(700,500); window.moveTo((screen.width-700)/2,(screen.height-500)/2);">
-				<input type="hidden" name="action" id="action" value="camera">
+			<form name="registration" action="/registration" method="post" id="regForm" onsubmit="resizeWindow('/registration','camera','_self')">
+				<input type="hidden" name="action" id="action" value="camera"> <!-- for submitting form to server -->
 				<input type="text" name="name" id="name" placeholder="Name" autocomplete="off" required>
-				<input type="email" name="email" id="email" placeholder="Parent / Guardian's Email" autocomplete="off" required>
+				<!-- <input type="email" name="email" id="email" placeholder="Parent / Guardian's Email" autocomplete="off" required> -->
 				<input type="checkbox" id="dataPrivacy" required>
-				<label for="dataPrivacy">By clicking "Next", you assure that your data (name, email, facial images) will be kept as confidential.</label>
+				<label for="dataPrivacy">By clicking "Next", you assure that your data (name, facial images) will be kept confidential.</label>
 				<hr/>
-				<button type="submit" id="next" disabled>Next</button>
+				<button type="submit" class="button" id="next" disabled>Next</button>
 				<button type="button" class="button" onclick="window.close();">Back to Home</button>
 			</form>
 			<script>

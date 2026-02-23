@@ -4,11 +4,32 @@
 		<title>Registration</title>
 		<link rel="stylesheet" href="style.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<style>
+			.img-holder {
+				margin: auto;
+				width: fit-content;
+			}
+			
+			.img-holder img {
+				width: 100px;
+				height: 100px;
+			}
+			
+			p {
+				text-align: center;
+				margin: 8px;
+			}
+		</style>
 	</head>
 	<body>
-		<div class="box" style="height:376px;">
-			<h3 class="center">Registration Finished</h3>
-			<p>You can now exit this window.</p>
+		<div class="box">
+			<h3 class="center">Registration</h3>
+			<p><%= message %></p>
+			<div class="img-holder">
+				<img src="<%- success ? "/images/content/ok.png" : "/images/content/error.png" %>">
+			</div>
+			
+			<p>You may now close this window.</p>
 			<button type="button" class="button" onclick="window.close();">Back to Home</button>
 		</div>
 	</body>

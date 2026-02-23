@@ -23,6 +23,7 @@
 			let embedded = <%- embedded %>;
 			let records = <%- record %>;
 			let rowElements = [];
+			let socket = new WebSocket(window.location.origin);
 			
 			if (embedded) {
 				document.getElementById("body").className = "embedded";
@@ -53,12 +54,9 @@
 				})
 			}
 			
-			setInterval(()=>{
-				update();
-			},3e4);
-
 			document.getElementById("searchbar").addEventListener("change",update);
 			update();
+			socket.addEventListener("message",()=>update());
 		</script>
 	</body>
 </html>

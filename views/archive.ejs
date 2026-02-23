@@ -28,6 +28,7 @@
 		<script>
 			let archive = <%- dates %>;
 			let rowElements = [];
+			let socket = new WebSocket(window.location.origin);
 			
 			let rowsPerPage = 10;
 			let page = 1;
@@ -46,7 +47,6 @@
 				rowElements = [];
 				
 				let coef = rowsPerPage * (page-1);
-				
 				let portion = archive.slice(coef,coef+10);
 				
 				fillRest(portion,rowsPerPage);
@@ -59,7 +59,8 @@
 						
 						if (values.length > 0) {
 							let val = values[i];
-							if (i == 0) {
+							// check if val is a date
+							if (i == 0) { 
 								let split = val.split("-");
 								let a = document.createElement("a");
 								a.innerHTML = val;
@@ -88,6 +89,8 @@
 			}
 			
 			update();
+			
+			socket.addEventListener("message",()=>update());
 		</script>
 	</body>
 </html>

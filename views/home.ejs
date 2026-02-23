@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>Facial Recognition System</title>
 		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 		<link rel="stylesheet" href="style.css">
+		<script src="resize-window.js"></script>
 	</head>
 	<body>
 		<div class="box home-page-box">
-			<h2 class="center">Face Recognition System</h2>
+			<h2 class="center">Facial Recognition System</h2>
 			<p class="center">v<%= version %></p>
 			<div class="gridbox">
 				<div class="box">
 					<iframe id="record"></iframe>
 				</div>
 				<div class="box">
-					<button class="home-page-button" onclick="f('/registration',400,318)">Register</button>
-					<button class="home-page-button" onclick="f('/verification',1036,490)">Verify Identity</button>
-					<button class="home-page-button" onclick="f('/archive',400,416)">Archive</button>
+					<button class="button home-page-button" onclick="resizeWindow('/registration')">Register</button>
+					<button class="button home-page-button" onclick="resizeWindow('/verification')">Verify Identity</button>
+					<button class="button home-page-button" onclick="resizeWindow('/archive')">Archive</button>
 					<hr/>
-					<button class="home-page-button" onclick="f('/qr',670,400)">QR Codes</button>
-					<button class="home-page-button" onclick="f('/test',700,500)">Submit Test Images</button>
+					<button class="button home-page-button" onclick="resizeWindow('/qr')">QR Codes</button>
+					<!-- <button class="home-page-button" onclick="f('/test',700,500)">Submit Test Images</button> -->
 				</div>
 				<div class="box statistics">
 					<div>
@@ -29,13 +31,8 @@
 			</div>
 		</div>
 		<script>
-			let windows = {};
-			
-			function f(url,w,h) {
-				let wnd = window.open(url,"_blank",`width=${w},height=${h},titlebar=0,top=${(screen.height-h)/2},left=${(screen.width-w)/2}`);
-				console.log(wnd);
-			}
-			
+			let socket = new WebSocket(window.location.origin);
+
 			function update() {
 				// today's attendance record
 				let pad = n=>n.toString().padStart(2,"0");
@@ -45,7 +42,10 @@
 				let month = pad(now.getMonth()+1);
 				let day = pad(now.getDate());
 				
-				document.getElementById("record").src = `/record?year=${year}&month=${month}&day=${day}&embedded=true`;
+				let newUrl = `/record?year=${year}&month=${month}&day=${day}&embedded=true`;
+				if (document.getElementById("record").src != newUrl) {
+					document.getElementById("record").src = newUrl;
+				}
 				
 				// statistics
 				fetch("/",{
@@ -56,19 +56,10 @@
 				.then(res=>res.json())
 				.then(registeredUsers=>document.getElementById("user-count").innerHTML = registeredUsers.length)
 				.catch(()=>document.getElementById("user-count").innerHTML = "Error");
-				
-				//fetch("/",{
-				//	method: "POST",
-				//	headers: {"Content-Type": "application/json"},
-				//	body: JSON.stringify({action: "get average accuracy"})
-				//})
-				//.then(res=>res.json())
-				//.then(msg=>document.getElementById("accuracy").innerHTML = msg.accuracy)
-				//.catch(()=>document.getElementById("accuracy").innerHTML = "Error");
 			}
 			
+			socket.onmessage = ()=>update();
 			update();
-			setInterval(update,3e4);
 		</script>
 	</body>
 </html>
