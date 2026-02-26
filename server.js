@@ -1,23 +1,13 @@
-// import {createRequire} from "module";
-// import {dirname} from 'node:path';
-// import {fileURLToPath} from 'node:url';
-
-// let require = createRequire(import.meta.url);
-// let __filename = fileURLToPath(import.meta.url);
-// let __dirname = dirname(__filename);
-
 let express = require("express");
 let bodyParser = require("body-parser");
 let path = require("path");
 let fs = require("fs");
 let mysql = require("mysql");
-let nodemailer = require("nodemailer");
 let util = require("util");
 let qrcode = require("qrcode");
 let http = require("http");
 let WebSocket = require("ws");
 require("dotenv").config();
-
 
 let pool = mysql.createPool({
 	connectionLimit: process.env.CONNECTION_LIMIT,
@@ -29,8 +19,6 @@ let pool = mysql.createPool({
 
 let qrCodeOptions = {width: 300, margin: 2};
 let wsClients = [];
-
-// let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
 
 let query = util.promisify(pool.query).bind(pool);
 let saveLoc = "public/images/faces";
@@ -45,50 +33,19 @@ app.use(express.json({limit: '50mb'}));
 let server = http.createServer(app);
 let wss = new WebSocket.WebSocketServer({ server });
 
-function sendMessage() {
-	console.log(wss.clients.length);
-	wss.clients.forEach(client=>{
-		if (client.readyState == WebSocket.OPEN) {
-			client.send("");
-			console.log("Sent message to client");
-		}
-	});
-}
-
 wss.on('connection', ws => {
 	console.log('Client connected')
 	wsClients.push(ws);
 	
-	ws.on('close', ()=>{
-		wsClients.splice(wsClients.indexOf(ws));
-	});
-	
+	ws.on('close', ()=>wsClients.splice(wsClients.indexOf(ws)));
 	ws.on('error', console.error);
-	ws.on('message', async msg => {
-		// let {action,body} = JSON.parse(msg);
-		// let name = body.name;
-		// if (action == "regfinish") {
-			// let responseData = {action, success: false, message: "Registration failed"}
-			// try {
-				// await query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
-				// console.log("Successfully registered user: "+name);
-				// responseData = {success: true, message: "Registration successful"};
-			// } catch {
-				// console.log("An error occured when registering user: "+name);
-			// } finally {
-				// ws.send(JSON.stringify(responseData));
-			// }
-		// }
-	});
 });
 
 app.post("/", async (req,res) => {
-	if (!req.body) return;
 	try {
 		let action = req.body.action ?? "";
 		let message = req.body.message ?? {};
 		let name = req.body.name;
-		//let email = req.body.email;
 	
 		switch (action.toLowerCase()) {
 			case "check username":
@@ -96,45 +53,10 @@ app.post("/", async (req,res) => {
 				let users = await query(`SELECT * FROM RegisteredUsers`);
 				users = users.map(user=>user.name.toLowerCase());
 				if (users.indexOf(message.toLowerCase()) != -1) alreadyExists = true;
-				
-				res.send({alreadyExists: alreadyExists});
-				
-				break;
-			case "add test image": {
-				let name = message.name;
-				let content = message.content;
-				
-				let b64 = content.split(";base64,").pop();
-				let buffer = Buffer.from(b64,"base64");
-				let imgPath = path.join(__dirname,"public","test_images",name+".jpg");
-				let jsonPath = path.join(__dirname,"public","test_images.json");
-				
-				fs.writeFile(imgPath,buffer,err=>{
-					if (err) res.json({ status: 'failed', message: err });
-					else res.json({ status: 'success', message: 'Successfully created file' });
-				});
-				
-				// update JSON
-				fs.readFile(jsonPath,"utf8",(err,data)=>{
-					if (err) throw err;
-					
-					try {
-						let jsonData = JSON.parse(data);
-						let actualName = name;
-						let url = path.join(__dirname,"public","test_images.json");
-						
-						jsonData.push({actualName,url});
-						
-						fs.writeFile(jsonPath,JSON.stringify(jsonData,null,4),"utf8",err=>{
-							if (err) throw err
-						});
-					} catch(err) {
-						console.error(err);
-					}
-				});
+				res.send({alreadyExists});
 				
 				break;
-			} case "capture": {
+			case "capture": {
 				let fileName = message.fileName;
 				let content = message.content;
 				
@@ -149,7 +71,6 @@ app.post("/", async (req,res) => {
 				break;
 			} case "reset captures":
 				if (!message.nextClicked) {
-					
 					let count = 0;
 					for (let i = 0; i < message.captureCount; i++) {
 						let imgPath = path.join(__dirname,saveLoc,`${message.user}_${i}.jpg`);
@@ -173,7 +94,6 @@ app.post("/", async (req,res) => {
 				} catch {
 					res.send({exists: false});
 				}
-				
 				break;
 			} case "face recognized":
 				if (!message.date.match(/^\d{4}-\d{2}-\d{2}$/)) return; // prevent sql injection
@@ -191,38 +111,6 @@ app.post("/", async (req,res) => {
 					wsClients.forEach(client=>{
 						if (client.readyState == WebSocket.OPEN) client.send("");
 					})
-					
-					// let userData = await query(`SELECT * FROM RegisteredUsers WHERE name = ?`,[message.name]);
-
-					// let email = userData[0].email;
-					// console.log("Got user email, verifying transporter...");
-					
-					// transporter.verify((err, success) => {
-						// if (err) throw err;
-						
-						// console.log("Successfully verified transporter, sending mail...");
-						
-						// let emailMessage = `
-							// Your child/ward '${message.name}' attended their class on time.<br/>
-							// <br/>
-							// This automated message was sent by the Facial Recognition System application.
-						// `
-						// let mailOptions = {
-							// from: `"Facial Recognition System" <${process.env.AUTH_USER}>`, // logged in account to facial recognition system
-							// to: email, // parent or guardian of verified user's email
-							// subject: "Attendance for "+message.date,
-							// text: emailMessage,
-							// html: emailMessage
-						// };
-
-						// transporter.sendMail(mailOptions, (error, info) => {
-							// if (error) {
-								// console.error("Error sending email: ", error);
-							// } else {
-								// console.log("Email sent: " + info.response);
-							// }
-						// });
-					// });
 				} else {
 					res.send({created: false, printToLogs: false});
 				}
@@ -231,7 +119,6 @@ app.post("/", async (req,res) => {
 		}
 	} catch (err) {
         console.error("Internal Server Error:", err);
-        //res.status(500).send("Internal Server Error");
 	}
 })
 
@@ -248,7 +135,6 @@ app.post("/registration",async (req,res)=>{
 	if (action == "camera") {
 		res.render("registration2",{name});
 	} else if (action == "regfinish") {
-		//res.render("regfinish",req.body.wssResponse);
 		let responseData = {success: false, message: "Registration failed"};
 		try {
 			await query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
@@ -281,8 +167,9 @@ app.get("/qr",async(req,res) => {
 		
 		qrCodes.Registration = url1;
 		qrCodes["Evaluation Survey"] = url2;
+		qrCodes = JSON.stringify(qrCodes)
 		
-		res.render("qr",{qrCodes:JSON.stringify(qrCodes)});
+		res.render("qr",{qrCodes});
 	} catch (err) {
 		console.error(err);
 	}
@@ -301,10 +188,9 @@ app.get("/record",async(req,res)=>{
 	try {
 		let record = await query(`SELECT * FROM \`${formattedDate}\``);
 		renderData.record = JSON.stringify(record.map(row=>({ name: row.name, time: row.time })));
-	} catch {
-		
+	} finally {
+		res.render("record",renderData);
 	}
-	res.render("record",renderData);
 })
 
 app.get("/archive",async (req,res)=>{
@@ -313,25 +199,20 @@ app.get("/archive",async (req,res)=>{
 		let archive = await query(`SELECT * FROM Archive`);
 		for (let i = 0; i < archive.length; i++) {
 			let date = archive[i].date;
-			let recordData;
+			let present;
 			try {
-				recordData = await query(`SELECT * FROM \`${date}\``);
-				recordData = recordData.length;
+				present = await query(`SELECT * FROM \`${date}\``);
+				present = present.length;
 			} catch (err) {
-				recordData = "Error";
+				present = "Error";
 			} finally {
-				dates.push({date, present: recordData});
+				dates.push({date, present});
 			}
 		}
 	} catch (err) {
 		console.error(err);
 	}
-	
 	res.render("archive",{dates:JSON.stringify(dates)});
-})
-
-app.get("/test",(req,res)=>{
-	res.render("test");
 })
 
 server.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
