@@ -60,8 +60,4 @@ DB_NAME = "face-recognition"
 DB_USER = "root"
 DB_PASSWORD = ""
 CONNECTION_LIMIT = 40
-
-# nodemailer transporter
-AUTH_USER = "placeholder" #email
-AUTH_PASS = "placeholder" #app password
 ```
