@@ -11,8 +11,9 @@
 			<h2 class="center">Facial Recognition System</h2>
 			<p class="center">v<%= version %></p>
 			<div class="gridbox">
-				<div class="box">
+				<div class="box gridbox" style="grid-template-rows: 1fr auto; grid-template-columns: auto;">
 					<iframe id="record"></iframe>
+					<button class="button home-page-button" onclick="viewCurrentRecord()">View in separate window</button>
 				</div>
 				<div class="box">
 					<button class="button home-page-button" onclick="resizeWindow('/registration')">Register</button>
@@ -31,8 +32,11 @@
 			</div>
 		</div>
 		<script>
-			let socket = new WebSocket(window.location.origin);
-
+			function viewCurrentRecord() {
+				let src = document.getElementById("record").contentWindow;
+				resizeWindow(src);
+			}
+		
 			function update() {
 				// today's attendance record
 				let pad = n=>n.toString().padStart(2,"0");
@@ -59,6 +63,7 @@
 			}
 			
 			function initWebSocket() {
+				let socket = new WebSocket(window.location.origin);
 				socket.onopen = ()=>console.log("WebSocket is open");
 				socket.onclose = ()=>{
 					if (confirm("WebSocket closed possibly due to changes with the server. Click \"OK\" to reload.")) {

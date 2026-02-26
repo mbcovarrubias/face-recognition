@@ -3,6 +3,7 @@
 	<head>
 		<link rel="stylesheet" href="style.css">
 		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+		<script src="resize-window.js"></script>
 	</head>
 	<body id="body">
 		<div class="box" id="main-box">
@@ -23,15 +24,6 @@
 			let embedded = <%- embedded %>;
 			let records = <%- record %>;
 			let rowElements = [];
-			let socket = new WebSocket(window.location.origin);
-			
-			if (embedded) {
-				document.getElementById("body").className = "embedded";
-				document.getElementById("main-box").classList.remove("box");
-				document.getElementsByName("hideIfEmbedded").forEach(elt=>{
-					elt.style.display = "none";
-				});
-			}
 			
 			function update() {
 				rowElements.forEach(row=>row.remove());
@@ -54,9 +46,35 @@
 				})
 			}
 			
-			document.getElementById("searchbar").addEventListener("change",update);
-			update();
-			socket.addEventListener("message",()=>update());
+			function initWebSocket() {
+				let socket = new WebSocket(window.location.origin);
+				socket.onopen = ()=>console.log("WebSocket is open");
+				socket.onclose = ()=>{
+					if (confirm("WebSocket closed possibly due to changes with the server. Click \"OK\" to reload.")) {
+						window.location.reload();
+					}
+				};
+				
+				socket.onmessage = data=>{
+					console.log("Message received:",data.toString());
+					update();
+				};
+			}
+
+			window.onload = ()=>{
+				document.getElementById("searchbar").addEventListener("change",update);
+				update();
+				if (embedded) {
+					document.getElementById("body").className = "embedded";
+					document.getElementById("main-box").classList.remove("box");
+					document.getElementsByName("hideIfEmbedded").forEach(elt=>{
+						elt.style.display = "none";
+					});
+				} else {
+					initWebSocket();
+				}
+			}
+			
 		</script>
 	</body>
 </html>
