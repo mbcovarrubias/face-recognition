@@ -31,7 +31,7 @@ function ding() {
 	audio.play();
 }
 
-function startCapturing() {
+async function startCapturing() {
 	captureCount = 0;
 	if (!detectionStarted) {
 		recording = true;
@@ -68,17 +68,12 @@ async function saveCapture(name,detection,idx) {
 		let box = detection.detection.box;
 		//let content = video.get(box.x,box.y,box.width,box.height).canvas.toDataURL("image/jpeg");
 		let content = canvas.canvas.toDataURL("image/jpeg");
+		let fileName = `${name}_${idx}`;
 		let response = await fetch("/",{
 			method: "POST",
 			headers: {"Content-Type": "application/json"},
-			body: JSON.stringify({
-				action: "capture",
-				message: {fileName: `${name}_${idx}`,content}
-			})
+			body: JSON.stringify({action: "capture", message: {fileName, content}})
 		});
-		
-		let result = await response.json();
-		console.log('Server response:', result);
 	} catch (err) {
 		console.log(err);
 	}
@@ -99,40 +94,16 @@ async function detectFace() {
 }
 
 function preload() {
-	document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
-	document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
-	document.getElementById("capture").addEventListener("click",startCapturing);
-	document.getElementById("cameraForm").addEventListener("submit",()=>{
-		nextClicked = true;
-	});
-
-	window.addEventListener("visibilitychange",event=>{
-		if (document.visibilityState === "hidden") {
-			// let data = JSON.stringify({
-				// action: "reset captures",
-				// message: {
-					// user: document.getElementById("name").value,
-					// nextClicked,
-					// captureCount: maxCaptures
-				// }
-			// })
-			// navigator.sendBeacon("/",data);
-			fetch("/",{
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify({
-					action: "reset captures",
-					message: {
-						user: document.getElementById("name").value,
-						nextClicked: nextClicked,
-						captureCount: maxCaptures
-					}
-				})
-			})
-			.then(res=>res.json())
-			.then(data=>console.log(data));
-		}
-	});
+	// load models
+	let modelsPath = "./models/face-api";
+	let promiseList = [
+		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
+		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
+		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
+		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
+	];
+	
+	Promise.all(promiseList);
 }
 
 function setup() {    
@@ -147,6 +118,31 @@ function setup() {
 }
 
 function videoReady() {
+	document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
+	document.getElementById("face").innerHTML = `Detecting face: ${detection?"yes":"no"}`;
+	document.getElementById("capture").addEventListener("click",startCapturing);
+	document.getElementById("cameraForm").addEventListener("submit",Event=>{
+		nextClicked = true;
+	});
+
+	// window.addEventListener("visibilitychange",Event=>{
+		// if (document.visibilityState === "hidden") {
+			// let user = document.getElementById("name").value;
+			// fetch("/",{
+				// method: "POST",
+				// headers: {"Content-Type": "application/json"},
+				// body: JSON.stringify({
+					// action: "reset captures",
+					// message: {user,nextClicked,captureCount: maxCaptures}
+				// })
+			// })
+			// .then(res=>res.json())
+			// .then(data=>console.log(data));
+			
+			// captureCount = 0;
+		// }
+	// });
+	
 	let stream = video.elt.srcObject;
 	let track = stream.getVideoTracks()[0].getSettings();
 	let vWidth = track.width;
@@ -155,17 +151,6 @@ function videoReady() {
 	aspectRatio = vWidth/vHeight;
 	
 	resizeCanvas(vw,vw/aspectRatio);
-	
-	// load models
-	let modelsPath = "./models/face-api";
-	let promiseList = [
-		faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-		faceapi.nets.faceLandmark68Net.loadFromUri(modelsPath),
-		faceapi.nets.faceRecognitionNet.loadFromUri(modelsPath),
-		faceapi.nets.faceExpressionNet.loadFromUri(modelsPath)
-	];
-	
-	Promise.all(promiseList);
 }
 
 function draw() {
@@ -187,7 +172,7 @@ function draw() {
 				
 				let name = document.getElementById("name").value;
 				saveCapture(name,detection,captureCount);
-				if (captureCount == 0) addTestImage(name,detection);
+				//if (captureCount == 0) addTestImage(name,detection);
 				
 				captureCount += 1;
 				ding();

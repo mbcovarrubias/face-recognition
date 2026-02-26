@@ -1,28 +1,17 @@
-let urlInfo = {
-	"/home": { 
-		dimensions: {"default": {width: 716, height: 576}} 
-	},
+let Dim = {
 	"/registration": {
-		dimensions: {
-			"default": {width: 400, height: 328},
-			"camera": {width: 975, height: 497},
-			"regfinish": {width: 400, height: 342}
-		}
+		"default": {width: 400, height: 328},
+		"camera": {width: 975, height: 497},
+		"regfinish": {width: 400, height: 342}
 	},
-	"/verification": { 
-		dimensions: {"default": {width: 1036, height: 598}}
-	},
-	"/archive": {
-		dimensions: {"default": {width: 400, height: 488}}
-	},
-	"/qr": { 
-		dimensions: {"default": {width: 678, height: 474}} 
-	},
+	"/verification": {"default": {width: 1036, height: 598}},
+	"/archive": {"default": {width: 400, height: 488}},
+	"/qr": {"default": {width: 678, height: 508}},
 }
 
 function resizeWindow(url,action = "default",target = "_blank") {
-	if (!urlInfo[url]) return;
-	let dim = urlInfo[url].dimensions[action];
+	if (!Dim[url]) return;
+	let dim = Dim[url][action];
 	let specs = `width=${dim.width},height=${dim.height},titlebar=0,left=${(screen.width-dim.width)/2},top=${(screen.height-dim.height)/2}`
 	
 	let w = window.open(url,target,specs);
@@ -32,5 +21,3 @@ function resizeWindow(url,action = "default",target = "_blank") {
 	
 	return w;
 }
-
-//openPage('/registration','_self','camera')
