@@ -29,6 +29,15 @@
 					box.appendChild(h3);
 					box.appendChild(div2);
 					
+					if (k == "Registration") {
+						let p = document.createElement("span");
+						p.innerHTML = "*QR code will redirect to invalid link if host is localhost";
+						p.className = "center";
+						p.style.margin = "auto";
+						
+						box.appendChild(p);
+					}
+					
 					document.getElementById("gridbox").appendChild(box);
 				})
 			</script>

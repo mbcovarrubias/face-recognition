@@ -16,7 +16,7 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "nodemon server.js",
-		"hard-reset": "node hard-reset.cjs",
+		"hard-reset": "node hard-reset.cjs && npm start",
 		"hr": "npm run hard-reset",
 		"clear-current-record": "node clear-current-record.cjs",
 		"ccr": "npm run clear-current-record",

@@ -18,7 +18,7 @@ let http = require("http");
 let WebSocket = require("ws");
 require("dotenv").config();
 
-let port = process.env.PORT;
+
 let pool = mysql.createPool({
 	connectionLimit: process.env.CONNECTION_LIMIT,
 	host: process.env.DB_HOST,
@@ -28,12 +28,13 @@ let pool = mysql.createPool({
 });
 
 let qrCodeOptions = {width: 300, margin: 2};
-
-let query = util.promisify(pool.query).bind(pool);
+let wsClients = [];
 
 // let transporter = nodemailer.createTransport({service: "gmail",auth: {user: process.env.AUTH_USER,pass: process.env.AUTH_PASS}});
 
+let query = util.promisify(pool.query).bind(pool);
 let saveLoc = "public/images/faces";
+let port = process.env.PORT;
 
 let app = express();
 app.set("view engine","ejs");
@@ -42,9 +43,10 @@ app.use(express.static("public"));
 app.use(express.json({limit: '50mb'}));
 
 let server = http.createServer(app);
-let wss = new WebSocket.Server({ server });
+let wss = new WebSocket.WebSocketServer({ server });
 
 function sendMessage() {
+	console.log(wss.clients.length);
 	wss.clients.forEach(client=>{
 		if (client.readyState == WebSocket.OPEN) {
 			client.send("");
@@ -54,14 +56,29 @@ function sendMessage() {
 }
 
 wss.on('connection', ws => {
-	console.log('Client connected');
-
-	ws.on('message', message => {
-		ws.send(`Server received: ${message}`);
+	console.log('Client connected')
+	wsClients.push(ws);
+	
+	ws.on('close', ()=>{
+		wsClients.splice(wsClients.indexOf(ws));
 	});
-
-	ws.on('close', () => {
-		console.log('Client disconnected');
+	
+	ws.on('error', console.error);
+	ws.on('message', async msg => {
+		// let {action,body} = JSON.parse(msg);
+		// let name = body.name;
+		// if (action == "regfinish") {
+			// let responseData = {action, success: false, message: "Registration failed"}
+			// try {
+				// await query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
+				// console.log("Successfully registered user: "+name);
+				// responseData = {success: true, message: "Registration successful"};
+			// } catch {
+				// console.log("An error occured when registering user: "+name);
+			// } finally {
+				// ws.send(JSON.stringify(responseData));
+			// }
+		// }
 	});
 });
 
@@ -132,6 +149,7 @@ app.post("/", async (req,res) => {
 				break;
 			} case "reset captures":
 				if (!message.nextClicked) {
+					
 					let count = 0;
 					for (let i = 0; i < message.captureCount; i++) {
 						let imgPath = path.join(__dirname,saveLoc,`${message.user}_${i}.jpg`);
@@ -140,7 +158,7 @@ app.post("/", async (req,res) => {
 							count++;
 						}
 					}
-					console.log(`Successfully removed ${count} images of registering user: ${message.user}`);
+					if (count > 0) console.log(`Successfully removed ${count} images of registering user: ${message.user}`);
 				}
 				break;
 			case "get registered users":
@@ -168,14 +186,16 @@ app.post("/", async (req,res) => {
 					await query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`,[message.name, message.time]);
 					await query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`,[message.date]);
 					
+					res.send({created: true, message: `Added '${message.name}' to current record`,printToLogs: true});
+					
+					wsClients.forEach(client=>{
+						if (client.readyState == WebSocket.OPEN) client.send("");
+					})
+					
 					// let userData = await query(`SELECT * FROM RegisteredUsers WHERE name = ?`,[message.name]);
 
 					// let email = userData[0].email;
 					// console.log("Got user email, verifying transporter...");
-					
-					res.send({created: true, message: `Added '${message.name}' to current record`,printToLogs: true});
-					
-					sendMessage();
 					
 					// transporter.verify((err, success) => {
 						// if (err) throw err;
@@ -219,7 +239,8 @@ app.get("/registration",(req,res)=>{
 	res.render("registration");
 })
 
-app.post("/registration",(req,res)=>{
+app.post("/registration",async (req,res)=>{
+	console.log(req.body);
 	if (!req.body.action) return;
 	let name = req.body.name;
 	let action = req.body.action.toLowerCase();
@@ -227,17 +248,20 @@ app.post("/registration",(req,res)=>{
 	if (action == "camera") {
 		res.render("registration2",{name});
 	} else if (action == "regfinish") {
-		query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
-		.then(()=>{
+		//res.render("regfinish",req.body.wssResponse);
+		let responseData = {success: false, message: "Registration failed"};
+		try {
+			await query(`INSERT INTO RegisteredUsers (name) VALUES (?)`,[name])
 			console.log("Successfully registered user: "+name);
-			res.render("regfinish",{success: true, message: "Registration successful"});
-			
-			sendMessage();
-		})
-		.catch(err=>{
+			responseData = {success: true, message: "Registration successful"};
+		} catch {
 			console.log("An error occured when registering user: "+name);
-			res.render("regfinish",{success: false, message: "Registration failed"});
-		});
+		} finally {
+			wsClients.forEach(client=>{
+				if (client.readyState == WebSocket.OPEN) client.send("");
+			})
+			res.render("regfinish",responseData);
+		}
 	}
 })
 

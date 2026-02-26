@@ -58,8 +58,22 @@
 				.catch(()=>document.getElementById("user-count").innerHTML = "Error");
 			}
 			
-			socket.onmessage = ()=>update();
+			function initWebSocket() {
+				socket.onopen = ()=>console.log("WebSocket is open");
+				socket.onclose = ()=>{
+					if (confirm("WebSocket closed possibly due to changes with the server. Click \"OK\" to reload.")) {
+						window.location.reload();
+					}
+				};
+				
+				socket.onmessage = data=>{
+					console.log("Message received:",data.toString())
+					update()
+				};
+			}
+			
 			update();
+			initWebSocket();
 		</script>
 	</body>
 </html>
