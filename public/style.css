@@ -115,7 +115,7 @@ iframe#record {
 	margin:0;
 	border:0;
 	padding:0;
-	height:100%;
+	height:fit-content;
 }
 
 /* qr codes */
