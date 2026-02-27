@@ -127,7 +127,6 @@ app.get("/registration",(req,res)=>{
 })
 
 app.post("/registration",async (req,res)=>{
-	console.log(req.body);
 	if (!req.body.action) return;
 	let name = req.body.name;
 	let action = req.body.action.toLowerCase();
