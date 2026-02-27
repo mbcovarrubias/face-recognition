@@ -188,6 +188,8 @@ app.get("/record",async(req,res)=>{
 	try {
 		let record = await query(`SELECT * FROM \`${formattedDate}\``);
 		renderData.record = JSON.stringify(record.map(row=>({ name: row.name, time: row.time })));
+	} catch {
+		
 	} finally {
 		res.render("record",renderData);
 	}
