@@ -19,13 +19,6 @@ let detectionInterval;
 
 let detectionOptions = new faceapi.TinyFaceDetectorOptions();
 
-function isUsingTouchscreen() {
-	let hasTouchEvents = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-	let prefersCoarsePointer = window.matchMedia("(any-pointer: coarse)").matches;
-
-	return hasTouchEvents && prefersCoarsePointer;
-}
-
 function ding() {
 	let audio = new Audio("ding.mp3");
 	audio.play();
@@ -160,6 +153,12 @@ function draw() {
 		document.getElementById("face").innerHTML = `Detecting face: ${detection?"Yes":"No"}`;
 		
 		if (recording && detection) {
+			if (captureCount>=maxCaptures) {
+				stroke(0,255,0);
+			} else {
+				stroke(0,0,255);
+			}
+			
 			if (Date.now()-lastTick >= captureDelay && captureCount <= maxCaptures) {
 				if (captureCount>=maxCaptures) {
 					recording = false;
@@ -185,7 +184,7 @@ function draw() {
 			let box = detection.detection.box;
 				
 			strokeWeight(2);
-			stroke(0,0,255);
+			
 			noFill();
 			rect(box.x,box.y,box.width,box.height);
 		}

@@ -4,7 +4,7 @@ let logs = document.getElementById("logs");
 let maxBlinkThreshold = .2;
 let maxExprCount = 2;
 let maxCaptures = 20;
-let maxRecognitionThreshold = .6;
+let maxRecognitionThreshold = .4;
 let vw = 480;
 
 // blink

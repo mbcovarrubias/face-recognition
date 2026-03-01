@@ -108,6 +108,8 @@ body > div.home-page-box div.statistics { display: table; text-align: center; }
 body > div.home-page-box div.statistics > * { display: table-cell; width: 50%; }
 body > div.home-page-box div.statistics > * > p {margin: 8px;}
 body > div.home-page-box div.statistics > * > :nth-child(1) {font-size: 20pt;}
+body > div.home-page-box .flexbox { flex-direction: column; }
+body > div.home-page-box .flexbox > :nth-child(1) { flex-grow: 1; }
 
 button.home-page-button { width: 20em; }
 
@@ -115,7 +117,6 @@ iframe#record {
 	margin:0;
 	border:0;
 	padding:0;
-	height:fit-content;
 }
 
 /* qr codes */
