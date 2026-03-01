@@ -6,12 +6,12 @@
     <title>Verification</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.9/p5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js"></script>
-	<script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
+	<script src="https://unpkg.com/ml5/dist/ml5.min.js"></script>
   </head>
   <body>
 	<div class="box verification-box">
 		<h3 class="center">Verification</h3>
-		<div class="gridbox">
+		<div class="gridbox" id="main">
 			<div class="box" id="canvas">
 				<div class="center">
 					<!-- create main element here so p5.js will use it here instead of creating it by itself in the body-->
@@ -23,7 +23,7 @@
 				<h4 class="center">Instructions</h4>
 				<ol>
 					<li>Show your face to the camera</li>
-					<li>Blink</li>
+					<li>Once blue and red box shows, blink</li>
 				</ol>
 				<hr/>
 				<h4 class="center">Notes</h4>
@@ -39,8 +39,20 @@
 			</div>
 		</div>
 		
+		<div class="center" id="showIfNotSupported" style="display:none;">
+			<p>Feature not supported on mobile.</p>
+			<button type="button" class="button" onclick="window.close();">Back to Home</button>
+		</div>
+		
 		<script src="verification.js"></script>
 		<script>
+			function isUsingTouchscreen() {
+				let hasTouchEvents = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+				let prefersCoarsePointer = window.matchMedia("(any-pointer: coarse)").matches;
+
+				return hasTouchEvents && prefersCoarsePointer;
+			}
+			
 			function openCurrentRecord() {
 				let pad = (n) => n.toString().padStart(2,"0");
 	
@@ -54,6 +66,13 @@
 					"_blank",
 					`width=400,height=416,titlebar=0,top=${(screen.height-400)/2},left=${(screen.width-400)/2}`
 				)
+			}
+			
+			window.onload = ()=>{
+				if (isUsingTouchscreen()) {
+					document.getElementById("main").style.display = "none";
+					document.getElementById("showIfNotSupported").style.display = "";
+				}
 			}
 		</script>
 	</div>
