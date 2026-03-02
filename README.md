@@ -6,7 +6,7 @@ Purpose of creation of this repository is for the following reasons:
 * Installing and testing the application from different devices
   
 ## Libraries used
-* face-api.js by vladmandic https://github.com/vladmandic/face-api
+* face-api.js, original by justadudewhohacks, updated by vladmandic https://github.com/vladmandic/face-api
 * p5.js
 * ml5.js
 ## Prerequisites
