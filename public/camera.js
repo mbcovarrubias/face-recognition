@@ -3,7 +3,7 @@ let mainCanvas = document.getElementById("canvas");
 let captureCount = 0;
 let captureDelay = 200; // in milliseconds
 let lastTick = 0;
-let maxCaptures = 20;
+let maxCaptures = 10;
 let vw = 480;
 
 let detection = undefined;
@@ -57,9 +57,9 @@ async function addTestImage(name,detection) {
 }
 
 async function saveCapture(name,detection,idx) {
+	let fileCaptureResponse = {success: false};
 	try {
 		let box = detection.detection.box;
-		//let content = video.get(box.x,box.y,box.width,box.height).canvas.toDataURL("image/jpeg");
 		let content = canvas.canvas.toDataURL("image/jpeg");
 		let fileName = `${name}_${idx}`;
 		let response = await fetch("/",{
@@ -67,9 +67,14 @@ async function saveCapture(name,detection,idx) {
 			headers: {"Content-Type": "application/json"},
 			body: JSON.stringify({action: "capture", message: {fileName, content}})
 		});
+		
+		fileCaptureResponse = await response.json();
 	} catch (err) {
 		console.log(err);
+		fileCaptureResponse.message = err;
 	}
+	
+	return fileCaptureResponse.success;
 }
 
 async function detectFace() {
@@ -170,13 +175,12 @@ function draw() {
 				}
 				
 				let name = document.getElementById("name").value;
-				saveCapture(name,detection,captureCount);
-				//if (captureCount == 0) addTestImage(name,detection);
-				
-				captureCount += 1;
-				ding();
-				
-				document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
+				if (saveCapture(name,detection,captureCount)) {
+					captureCount += 1;
+					ding();
+					
+					document.getElementById("captures").innerHTML = `Faces captured: ${captureCount}/${maxCaptures}`;
+				}
 				
 				lastTick = Date.now();
 			}
