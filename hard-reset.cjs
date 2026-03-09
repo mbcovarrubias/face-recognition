@@ -30,7 +30,7 @@ require("dotenv").config();
 		await query("USE `face-recognition`");
 		//await query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE, email VARCHAR(255))");
 		await query("CREATE TABLE RegisteredUsers (name VARCHAR(255) UNIQUE)");
-		//query("CREATE TABLE FaceRecognitionResults (accuracy DECIMAL(5,2))");
+		await query("CREATE TABLE FaceRecognitionDuration (duration FLOAT)");
 		await query("CREATE TABLE Archive (date VARCHAR(255) UNIQUE)");
 		
 		console.log("Hard reset successful");
