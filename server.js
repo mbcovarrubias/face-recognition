@@ -65,8 +65,12 @@ app.post("/", async (req,res) => {
 				let imgPath = path.join(__dirname,saveLoc,fileName+".jpg");
 				
 				fs.writeFile(imgPath,buffer,err=>{
-					if (err) res.json({ status: 'failed', message: err });
-					else res.json({ status: 'success', message: 'Successfully created file' });
+					let success = true;
+					let message = err ? err : 'Successfully created file';
+					
+					if (err) success = false;
+
+					res.json({ success, message });
 				});
 				break;
 			} case "reset captures":
