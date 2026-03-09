@@ -1,7 +1,7 @@
 let Dim = {
 	"/registration": {
 		"default": {width: 400, height: 328},
-		"camera": {width: 975, height: 497},
+		"camera": {width: 1036, height: 497},
 		"regfinish": {width: 400, height: 342}
 	},
 	"/verification": {"default": {width: 1036, height: 598}},
