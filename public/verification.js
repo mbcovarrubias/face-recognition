@@ -135,6 +135,8 @@ function faceRecognized(detectionData) {
 	let date = `${year}-${month}-${day}`;
 	let time = `${hours}:${minutes}:${seconds}`;
 	
+	let verificationDuration = 0;
+	
 	stroke(0,0,255);
 	strokeWeight(2);
 	noFill();
@@ -165,23 +167,14 @@ function faceRecognized(detectionData) {
 		faceStates[name] = {
 			blink: false,
 			blinkStart: 0,
-			blinkEnd: 0
+			blinkEnd: 0,
+			firstSeen: now.getTime() // first seen not more than 2 seconds ago
 		}
 	}
 	
 	faceStates[name].lastSeen = now.getTime();
 	
 	faceState = faceStates[name];
-	
-	let requestOptions = {
-		method: "POST",
-		headers: {"Content-Type": "application/json"},
-		body: JSON.stringify({
-			action: "face recognized",
-			message: {name,date,time,"unknown": name == "unknown"}
-		})
-	}
-
 	
 	if (linkedMesh) {
 		let keypoints = linkedMesh.keypoints;
@@ -220,11 +213,24 @@ function faceRecognized(detectionData) {
 				
 				let frameDiff = faceState.blinkEnd - faceState.blinkStart;
 				if (frameDiff >= minBlinkFrames && frameDiff <= maxBlinkFrames) {
-					stroke(0,255,0);
-					ding();
+					verificationDuration = (Date.now() - faceState.firstSeen)/1000;
 					
-					fetch("/",requestOptions).then(res=>res.json())
-					.then(res=>{if (res.printToLogs) addToLogs(res.message,false)});
+					if (verificationDuration) {
+						let requestOptions = {
+							method: "POST",
+							headers: {"Content-Type": "application/json"},
+							body: JSON.stringify({
+								action: "face recognized",
+								message: {name,date,time,"unknown": name == "unknown",verificationDuration}
+							})
+						}
+						
+						stroke(0,255,0);
+						ding();
+						
+						fetch("/",requestOptions).then(res=>res.json())
+						.then(res=>{if (res.printToLogs) addToLogs(res.message,false)});
+					}
 				}
 			}
 		}
@@ -355,5 +361,4 @@ function draw() {
 
 screen.orientation.addEventListener("change",()=>{
 	setTimeout(setup,500);
-
 });
