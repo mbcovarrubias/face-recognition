@@ -107,15 +107,13 @@ app.post("/", async (req,res) => {
 				let list = await query(`SELECT * FROM \`${message.date}\``);
 				let names = list.map((row)=>row.name);
 				if (!message.unknown && names.indexOf(message.name) == -1) {
-					console.log(message);
-					
 					await query(`INSERT INTO \`${message.date}\` (name, time) VALUES (?, ?) ON DUPLICATE KEY UPDATE time = VALUES(time)`,[message.name, message.time]);
 					await query(`INSERT INTO Archive (date) VALUES (?) ON DUPLICATE KEY UPDATE date=date`,[message.date]);
 					await query(`INSERT INTO FaceRecognitionDuration (duration) VALUES (?)`,[message.verificationDuration]);
 					
 					let record = await query(`SELECT * FROM \`${message.date}\``);
 					
-					res.send({created: true, message: `Added '${message.name}' to current record. Detection duration: ${message.verificationDuration}s`,printToLogs: true});
+					res.send({created: true, message: `Added '${message.name}' to current record. Verification duration: ${message.verificationDuration}s`,printToLogs: true});
 					
 					wsClients.forEach(client=>{
 						if (client.readyState == WebSocket.OPEN) client.send(JSON.stringify(record));
@@ -226,3 +224,4 @@ app.get("/archive",async (req,res)=>{
 })
 
 server.listen(port,()=>console.log(`Server is running on http://localhost:${port}`));
+
