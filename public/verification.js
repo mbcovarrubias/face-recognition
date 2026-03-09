@@ -3,7 +3,7 @@ let logs = document.getElementById("logs");
 
 let maxBlinkThreshold = .2;
 let maxExprCount = 2;
-let maxCaptures = 20;
+let maxCaptures = 10;
 let maxRecognitionThreshold = .4;
 let vw = 480;
 
@@ -355,4 +355,5 @@ function draw() {
 
 screen.orientation.addEventListener("change",()=>{
 	setTimeout(setup,500);
+
 });
